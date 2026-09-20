@@ -266,8 +266,9 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);fon
         <input type="number" id="principal" value="5200" min="0" step="10"><span class="unit">萬</span></div>
       <div class="row"><label for="spend">退休後每年支出<span class="hint">以今天的幣值填寫</span></label>
         <input type="number" id="spend" value="150" min="0" step="5"><span class="unit">萬</span></div>
-      <div class="row"><label for="ret">投資年化報酬</label>
-        <input type="number" id="ret" value="5" min="-5" max="20" step="0.1"><span class="unit">%</span></div>
+      <div class="row"><label for="ret">投資年化報酬<span class="hint">由下方「投資組合」的權重自動計算，不能直接填</span></label>
+        <input type="number" id="ret" value="5" step="0.01" readonly tabindex="-1"
+          style="background:#eef1ec;color:var(--muted)"><span class="unit">%</span></div>
       <div class="row"><label for="infl">通膨率</label>
         <input type="number" id="infl" value="2" min="0" max="10" step="0.1"><span class="unit">%</span></div>
       <div class="row"><label for="keep">想保留的本金<span class="hint">希望資產不低於此數，沒有就填 0</span></label>
@@ -377,11 +378,10 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);fon
       </div>
       <div class="blend">
         <div>
-          <div class="lab" id="blendLabel">組合歷史年化報酬</div>
+          <div class="lab" id="blendLabel">組合歷史年化報酬　→　已套用到試算</div>
           <div class="num" id="blendVal">—</div>
         </div>
-        <button type="button" id="applyBlend">套用到試算</button>
-        <button type="button" id="runSeq" style="background:var(--li)">跑逐年順序回測</button>
+        <button type="button" id="runSeq" style="background:var(--li)">看逐年順序回測細節</button>
         <div class="lab" id="blendNote" style="flex:1 1 200px"></div>
       </div>
 
@@ -1507,7 +1507,14 @@ function paintAssets(){
   $("wSum").textContent = b.wsum > 0 ? b.wsum + "%" : "—";
   $("blendLabel").textContent = HORIZON_NAME[horizon] + "　組合歷史年化報酬";
   $("blendVal").textContent = b.rate === null ? "—" : b.rate.toFixed(2) + "%";
-  $("applyBlend").disabled = (b.rate === null);
+  if(b.rate !== null){
+    var cur = parseFloat($("ret").value);
+    var next = parseFloat(b.rate.toFixed(2));
+    if(!isFinite(cur) || Math.abs(cur - next) > 0.001){
+      $("ret").value = next;
+    }
+  }
+  render();
   var notes = [];
   if(b.wsum === 0) notes.push("先給至少一個標的權重。");
   else if(Math.abs(b.wsum - 100) > 0.01) notes.push("權重合計 " + b.wsum + "%，已按比例換算。");
@@ -1538,16 +1545,8 @@ function initAssets(){
   document.querySelectorAll(".horizons button").forEach(function(btn){
     btn.addEventListener("click", function(){ horizon = btn.dataset.h; paintAssets(); });
   });
-  $("applyBlend").addEventListener("click", function(){
-    var b = blend(); if(b.rate === null) return;
-    $("ret").value = b.rate.toFixed(2);
-    render();
-    this.textContent = "已套用";
-    var self = this;
-    setTimeout(function(){ self.textContent = "套用到試算"; }, 1600);
-  });
   ["bkFrom","bkTo"].forEach(function(id){
-    $(id).addEventListener("input", function(){ paintAssets(); render(); });
+    $(id).addEventListener("input", paintAssets);
   });
   $("runSeq").addEventListener("click", showSequence);
   paintAssets();
@@ -1856,14 +1855,24 @@ function exportPptx(){
 function init(){
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){ saved = null; }
-  writeForm(saved && typeof saved === "object" ? Object.assign({}, F, saved) : F);
-  render();
+  if(saved && saved.form){
+    writeForm(Object.assign({}, F, saved.form));
+    if(saved.weights) weights = saved.weights;
+    if(saved.horizon) horizon = saved.horizon;
+    if(saved.bkFrom) $("bkFrom").value = saved.bkFrom;
+    if(saved.bkTo) $("bkTo").value = saved.bkTo;
+  } else {
+    writeForm(F);
+  }
   initAssets();
   $("form").addEventListener("input", render);
   $("form").addEventListener("change", render);
   $("save").addEventListener("click", function(){
     try {
-      localStorage.setItem(KEY, JSON.stringify(readFormRaw()));
+      localStorage.setItem(KEY, JSON.stringify({
+        form: readFormRaw(), weights: weights, horizon: horizon,
+        bkFrom: $("bkFrom").value, bkTo: $("bkTo").value
+      }));
       this.textContent = "已存檔";
       var b = this;
       setTimeout(function(){ b.textContent = "存檔"; }, 1600);
@@ -1873,7 +1882,10 @@ function init(){
   });
   $("reset").addEventListener("click", function(){
     try { localStorage.removeItem(KEY); } catch(e){}
-    writeForm(F); render();
+    writeForm(F);
+    weights = { spx:100 }; horizon = "lt";
+    $("bkFrom").value = 1990; $("bkTo").value = 2025;
+    buildAssetTable(); paintAssets();
   });
   $("scAdd").addEventListener("click", function(){
     var nm = $("scName").value.trim() || ("情境 " + (scenarios.length + 1));
