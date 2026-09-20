@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>退休金試算</title>
+<meta name="description" content="試算勞保老年年金、勞退專戶月退休金與國民年金，並推估退休後資產能撐到幾歲。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#18211d; --paper:#e8eae3; --surface:#ffffff; --line:#cfd3c9;
+  --muted:#6c736b; --faint:#9aa197;
+  --principal:#2e4756; --lp:#c0763f; --li:#5b8c5a; --np:#8d6a9f; --alert:#a83228;
+  --ok:#2f6b4f;
+  --serif:"Noto Serif TC",Georgia,"Songti TC","SimSun",serif;
+  --sans:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei","Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.6;
+  font-variant-numeric:tabular-nums;
+}
+h1,h2,h3{font-family:var(--serif);font-weight:700;margin:0;letter-spacing:.01em}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--principal);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:1px solid var(--line);background:var(--surface)}
+.masthead .in{max-width:1180px;margin:0 auto;padding:18px 20px;display:flex;
+  align-items:baseline;gap:16px;flex-wrap:wrap}
+.masthead h1{font-size:24px}
+.masthead p{margin:0;color:var(--muted);font-size:13px;flex:1 1 240px}
+.tools{display:flex;gap:8px}
+.tools button{background:none;border:1px solid var(--line);border-radius:2px;
+  padding:6px 12px;font-size:13px;cursor:pointer}
+.tools button:hover{background:var(--paper)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 64px;
+  display:grid;grid-template-columns:352px 1fr;gap:26px;align-items:start}
+@media (max-width:920px){.wrap{grid-template-columns:1fr;padding:16px 14px 48px}}
+
+/* ---------- form: a ruled ledger ---------- */
+.ledger{background:var(--surface);border:1px solid var(--line);border-radius:3px}
+@media (min-width:921px){.ledger{position:sticky;top:16px;max-height:calc(100vh - 40px);overflow-y:auto}}
+.ledger fieldset{border:0;margin:0;padding:0;border-bottom:1px solid var(--line)}
+.ledger fieldset:last-of-type{border-bottom:0}
+.ledger legend{width:100%;padding:11px 16px;background:#f2f3ee;
+  font-family:var(--serif);font-size:14px;font-weight:600;
+  border-bottom:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:10px;padding:7px 16px;
+  border-bottom:1px dotted var(--line)}
+.row:last-child{border-bottom:0}
+.row label{flex:1;font-size:13.5px;line-height:1.35}
+.row .hint{display:block;color:var(--faint);font-size:11.5px;margin-top:1px}
+.row input[type=number]{width:104px;text-align:right;padding:5px 8px;
+  border:1px solid var(--line);border-radius:2px;background:#fcfcfa}
+.row .unit{width:30px;font-size:12px;color:var(--muted)}
+.row.check{gap:8px}
+.row.check input{width:16px;height:16px;accent-color:var(--principal)}
+.row.check label{font-size:13px}
+.spouse-body[hidden]{display:none}
+
+/* ---------- results ---------- */
+.stack{display:flex;flex-direction:column;gap:22px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:20px}
+.panel>h2{font-size:17px;margin-bottom:4px}
+.panel>.sub{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+
+/* hero */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.hero-top{padding:22px 20px 18px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}
+.big{font-family:var(--serif);font-size:46px;line-height:1;font-weight:700}
+.big small{font-family:var(--sans);font-size:15px;font-weight:400;margin-left:6px;color:var(--muted)}
+.big-label{color:var(--muted);font-size:13px;margin-bottom:6px}
+.verdict{flex:1 1 230px;border-left:3px solid var(--ok);padding-left:14px}
+.verdict.bad{border-left-color:var(--alert)}
+.verdict strong{display:block;font-family:var(--serif);font-size:19px}
+.verdict span{color:var(--muted);font-size:13px}
+.hero-band{padding:4px 20px 20px}
+
+/* legend chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px}
+.chip{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.sw{width:11px;height:11px;border-radius:2px;flex:none}
+
+/* breakdown */
+.bd{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.bd div{background:var(--surface);padding:13px 15px}
+.bd .k{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.bd .v{font-family:var(--serif);font-size:23px;font-weight:600;margin-top:3px}
+.bd .n{font-size:11.5px;color:var(--faint)}
+
+svg{display:block;max-width:100%;height:auto}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:620px}
+th,td{padding:6px 9px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#f2f3ee;font-weight:500;color:var(--muted);font-size:12px;
+  position:sticky;top:0;text-align:right}
+th:first-child,td:first-child{text-align:left}
+tbody tr.mark td{background:#fbf6ef}
+tbody tr.neg td{color:var(--alert)}
+.tablewrap{max-height:400px;overflow:auto;border:1px solid var(--line);border-radius:3px}
+
+.note{font-size:12.5px;color:var(--muted);line-height:1.7}
+.note b{color:var(--ink);font-weight:500}
+details.formula{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+details.formula summary{cursor:pointer;font-size:13px;color:var(--principal)}
+details.formula .body{margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.8}
+code{background:#f2f3ee;padding:1px 5px;border-radius:2px;font-size:12px}
+
+/* asset picker */
+.warnbar{border-left:3px solid var(--lp);background:#fdf7ef;padding:11px 14px;
+  font-size:12.5px;line-height:1.65;margin:0 0 16px;border-radius:0 3px 3px 0}
+.horizons{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--line);
+  border-radius:3px;overflow:hidden;width:fit-content;max-width:100%;flex-wrap:wrap}
+.horizons button{border:0;background:var(--surface);padding:7px 15px;font-size:13px;
+  cursor:pointer;border-right:1px solid var(--line)}
+.horizons button:last-child{border-right:0}
+.horizons button[aria-pressed=true]{background:var(--principal);color:#fff}
+table.assets{min-width:520px}
+table.assets td,table.assets th{padding:6px 9px}
+table.assets td.name{text-align:left;font-size:13px}
+table.assets td.name em{font-style:normal;color:var(--faint);font-size:11.5px;display:block}
+table.assets td.r{font-variant-numeric:tabular-nums}
+table.assets td.r.est{color:var(--lp)}
+table.assets input.w{width:64px;text-align:right;padding:4px 7px;border:1px solid var(--line);
+  border-radius:2px;background:#fcfcfa}
+table.assets tr.on td{background:#f5f8f6}
+.blend{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--line)}
+.blend .num{font-family:var(--serif);font-size:32px;font-weight:700}
+.blend .lab{color:var(--muted);font-size:12.5px}
+.blend button{background:var(--principal);color:#fff;border:0;border-radius:2px;
+  padding:9px 18px;font-size:14px;cursor:pointer}
+.blend button:hover{background:#24394a}
+.blend button[disabled]{background:var(--faint);cursor:not-allowed}
+
+footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);font-size:12px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="in">
+    <h1>退休金試算</h1>
+    <p>勞保老年年金、勞退專戶月退休金、國民年金，加上你的本金與支出，算出錢能撐到幾歲。</p>
+    <div class="tools">
+      <button type="button" id="save">存檔</button>
+      <button type="button" id="reset">回到預設值</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ INPUTS ============ -->
+  <form class="ledger" id="form" autocomplete="off">
+
+    <fieldset>
+      <legend>你的年齡</legend>
+      <div class="row"><label for="ageNow">目前年齡</label>
+        <input type="number" id="ageNow" value="48" min="18" max="90" step="1"><span class="unit">歲</span></div>
+      <div class="row"><label for="ageRetire">停止工作年齡<span class="hint">在此之前假設薪資剛好打平支出，本金只複利成長</span></label>
+        <input type="number" id="ageRetire" value="48" min="18" max="90" step="1"><span class="unit">歲</span></div>
+      <div class="row"><label for="ageEnd">預計餘命<span class="hint">試算到這個歲數為止</span></label>
+        <input type="number" id="ageEnd" value="85" min="50" max="110" step="1"><span class="unit">歲</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>勞保老年年金</legend>
+      <div class="row"><label for="liYears">投保年資</label>
+        <input type="number" id="liYears" value="22" min="0" max="50" step="0.5"><span class="unit">年</span></div>
+      <div class="row"><label for="liSalary">月投保薪資<span class="hint">最高 45,800 元</span></label>
+        <input type="number" id="liSalary" value="45800" min="0" step="100"><span class="unit">元</span></div>
+      <div class="row"><label for="liClaim">請領年齡<span class="hint">提前每年減 4%，延後每年增 4%</span></label>
+        <input type="number" id="liClaim" value="63" min="55" max="70" step="1"><span class="unit">歲</span></div>
+      <div class="row"><label for="liLegal">法定請領年齡</label>
+        <input type="number" id="liLegal" value="65" min="55" max="70" step="1"><span class="unit">歲</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>勞退專戶（新制）</legend>
+      <div class="row"><label for="lpBalance">專戶現有金額</label>
+        <input type="number" id="lpBalance" value="5000000" min="0" step="10000"><span class="unit">元</span></div>
+      <div class="row"><label for="lpReturn">起領前年化報酬<span class="hint">勞動基金實際績效逐年不同</span></label>
+        <input type="number" id="lpReturn" value="5" min="0" max="15" step="0.1"><span class="unit">%</span></div>
+      <div class="row"><label for="lpClaim">起領年齡<span class="hint">須年滿 60 歲且提繳年資滿 15 年</span></label>
+        <input type="number" id="lpClaim" value="60" min="60" max="70" step="1"><span class="unit">歲</span></div>
+      <div class="row"><label for="lpLife">平均餘命 Tr<span class="hint">60 歲為 23 年</span></label>
+        <input type="number" id="lpLife" value="23" min="5" max="40" step="1"><span class="unit">年</span></div>
+      <div class="row"><label for="lpRate">官方預定利率 i</label>
+        <input type="number" id="lpRate" value="1.1473" min="0" max="10" step="0.0001"><span class="unit">%</span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>國民年金</legend>
+      <div class="row"><label for="npYears">投保年資</label>
+        <input type="number" id="npYears" value="12" min="0" max="50" step="0.5"><span class="unit">年</span></div>
+      <div class="row"><label for="npBase">月投保金額</label>
+        <input type="number" id="npBase" value="21103" min="0" step="1"><span class="unit">元</span></div>
+      <div class="row"><label for="npClaim">請領年齡<span class="hint">固定 65 歲，無提前或延後</span></label>
+        <input type="number" id="npClaim" value="65" min="60" max="70" step="1"><span class="unit">歲</span></div>
+      <div class="row check"><input type="checkbox" id="npB" checked>
+        <label for="npB">已領其他社會保險年金，只能採 B 式</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend><label class="row check" style="padding:0;border:0;gap:8px;margin:0">
+        <input type="checkbox" id="hasSpouse" style="margin:0">
+        <span style="font-family:var(--serif);font-weight:600">併計配偶</span></label></legend>
+      <div class="spouse-body" id="spouseBody" hidden>
+        <div class="row"><label for="sAgeNow">配偶目前年齡</label>
+          <input type="number" id="sAgeNow" value="47" min="18" max="90" step="1"><span class="unit">歲</span></div>
+        <div class="row"><label for="sLiYears">勞保年資</label>
+          <input type="number" id="sLiYears" value="20" min="0" max="50" step="0.5"><span class="unit">年</span></div>
+        <div class="row"><label for="sLiSalary">勞保月投保薪資</label>
+          <input type="number" id="sLiSalary" value="35000" min="0" step="100"><span class="unit">元</span></div>
+        <div class="row"><label for="sLiClaim">勞保請領年齡</label>
+          <input type="number" id="sLiClaim" value="63" min="55" max="70" step="1"><span class="unit">歲</span></div>
+        <div class="row"><label for="sLpBalance">勞退專戶金額</label>
+          <input type="number" id="sLpBalance" value="800000" min="0" step="10000"><span class="unit">元</span></div>
+        <div class="row"><label for="sLpClaim">勞退起領年齡</label>
+          <input type="number" id="sLpClaim" value="60" min="60" max="70" step="1"><span class="unit">歲</span></div>
+        <div class="row"><label for="sNpYears">國保年資</label>
+          <input type="number" id="sNpYears" value="15" min="0" max="50" step="0.5"><span class="unit">年</span></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend><label class="row check" style="padding:0;border:0;gap:8px;margin:0">
+        <input type="checkbox" id="usePledge" style="margin:0">
+        <span style="font-family:var(--serif);font-weight:600">用股票質押支應，不賣股</span></label></legend>
+      <div class="spouse-body" id="pledgeBody" hidden>
+        <div class="row"><label for="plCollateral">可質押擔保品市值<span class="hint">只能是台股與台股 ETF</span></label>
+          <input type="number" id="plCollateral" value="33670000" min="0" step="100000"><span class="unit">元</span></div>
+        <div class="row"><label for="plDebt">目前質押債務</label>
+          <input type="number" id="plDebt" value="3480000" min="0" step="10000"><span class="unit">元</span></div>
+        <div class="row"><label for="plRate">質押年利率<span class="hint">券商約 2.5–6.5%，每 6 個月調整</span></label>
+          <input type="number" id="plRate" value="2.9" min="0" max="15" step="0.01"><span class="unit">%</span></div>
+        <div class="row"><label for="plYield">組合現金殖利率<span class="hint">配息先用，缺口才借</span></label>
+          <input type="number" id="plYield" value="2.02" min="0" max="15" step="0.01"><span class="unit">%</span></div>
+        <div class="row"><label for="plLtv">可借成數上限</label>
+          <input type="number" id="plLtv" value="60" min="10" max="80" step="5"><span class="unit">%</span></div>
+        <div class="row"><label for="plCall">追繳維持率</label>
+          <input type="number" id="plCall" value="130" min="100" max="200" step="5"><span class="unit">%</span></div>
+        <div class="row"><label for="plFloor">自訂安全維持率<span class="hint">跌破就該主動還款</span></label>
+          <input type="number" id="plFloor" value="250" min="130" max="500" step="10"><span class="unit">%</span></div>
+        <div class="row"><label for="plStop">停止新增借款維持率</label>
+          <input type="number" id="plStop" value="300" min="130" max="600" step="10"><span class="unit">%</span></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>本金與支出</legend>
+      <div class="row"><label for="principal">目前可投資本金<span class="hint">不含自住不動產，已扣除負債</span></label>
+        <input type="number" id="principal" value="52000000" min="0" step="100000"><span class="unit">元</span></div>
+      <div class="row"><label for="spend">退休後每年支出<span class="hint">以今天的幣值填寫</span></label>
+        <input type="number" id="spend" value="1500000" min="0" step="10000"><span class="unit">元</span></div>
+      <div class="row"><label for="ret">投資年化報酬</label>
+        <input type="number" id="ret" value="5" min="-5" max="20" step="0.1"><span class="unit">%</span></div>
+      <div class="row"><label for="infl">通膨率</label>
+        <input type="number" id="infl" value="2" min="0" max="10" step="0.1"><span class="unit">%</span></div>
+      <div class="row"><label for="keep">想保留的本金<span class="hint">希望資產不低於此數，沒有就填 0</span></label>
+        <input type="number" id="keep" value="0" min="0" step="100000"><span class="unit">元</span></div>
+    </fieldset>
+  </form>
+
+  <!-- ============ RESULTS ============ -->
+  <main class="stack">
+
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="big-label">退休金全部到位後，每月可領</div>
+          <div class="big" id="monthlyTotal">—<small>元</small></div>
+        </div>
+        <div class="verdict" id="verdict">
+          <strong id="verdictTitle">—</strong>
+          <span id="verdictText"></span>
+        </div>
+      </div>
+      <div class="hero-band">
+        <svg id="timeline" viewBox="0 0 760 132" role="img" aria-labelledby="tlTitle">
+          <title id="tlTitle">一生現金流時間軸</title>
+        </svg>
+        <div class="chips">
+          <span class="chip"><span class="sw" style="background:var(--principal)"></span>靠本金支應</span>
+          <span class="chip"><span class="sw" style="background:var(--lp)"></span>勞退專戶</span>
+          <span class="chip"><span class="sw" style="background:var(--li)"></span>勞保年金</span>
+          <span class="chip"><span class="sw" style="background:var(--np)"></span>國民年金</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>每月退休金從哪裡來</h2>
+      <p class="sub" id="bdSub">金額為全部到位後的每月合計</p>
+      <div class="bd" id="breakdown"></div>
+      <details class="formula">
+        <summary>看計算方式</summary>
+        <div class="body" id="formulaBody"></div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>用歷史報酬決定報酬率</h2>
+      <p class="sub">給每個標的一個權重，算出組合的歷史年化報酬，再套用到上面的試算。</p>
+
+      <p class="warnbar" id="assetWarn"></p>
+
+      <div class="horizons" role="group" aria-label="選擇回測期間">
+        <button type="button" data-h="lt" aria-pressed="true">長期</button>
+        <button type="button" data-h="y10" aria-pressed="false">近 10 年</button>
+        <button type="button" data-h="y5" aria-pressed="false">近 5 年</button>
+      </div>
+
+      <div class="scroll">
+        <table class="assets" id="assetTable">
+          <thead><tr>
+            <th>標的</th><th>長期</th><th>近 10 年</th><th>近 5 年</th><th>權重</th>
+          </tr></thead>
+          <tbody></tbody>
+          <tfoot><tr>
+            <th colspan="4">權重合計</th><th id="wSum">—</th>
+          </tr></tfoot>
+        </table>
+      </div>
+
+      <div class="blend">
+        <div>
+          <div class="lab" id="blendLabel">組合歷史年化報酬</div>
+          <div class="num" id="blendVal">—</div>
+        </div>
+        <button type="button" id="applyBlend">套用到試算</button>
+        <button type="button" id="runSeq" style="background:var(--li)">跑逐年順序回測</button>
+        <div class="lab" id="blendNote" style="flex:1 1 200px"></div>
+      </div>
+
+      <div id="seqResult" hidden style="margin-top:20px;border-top:1px solid var(--line);padding-top:18px">
+        <h3 style="font-size:16px;margin-bottom:4px">逐年順序回測</h3>
+        <p class="sub" id="seqSub" style="margin-bottom:14px"></p>
+        <div class="bd" id="seqStats" style="margin-bottom:16px"></div>
+        <svg id="fan" viewBox="0 0 760 290" role="img" aria-labelledby="fanTitle">
+          <title id="fanTitle">每一條線是一個歷史起點的資產走勢</title>
+        </svg>
+        <p class="note" id="seqNote" style="margin-top:12px"></p>
+      </div>
+
+      <details class="formula">
+        <summary>這些數字從哪裡來，怎麼更新</summary>
+        <div class="body">
+          <p>標示 <b style="color:var(--lp)">°</b> 的是概估值，其餘為公開資料查得。數字每年會變，表格中的報酬欄位都可以直接改，改完會立刻重算。</p>
+          <p><b>台股 ETF 與個股</b>　Yahoo 股市各標的的「績效表現」頁，有 1／2／3／5／10 年的年化報酬（依淨值，已含息）。</p>
+          <p><b>台灣加權報酬指數</b>　證交所「發行量加權股價報酬指數」（代號 IR0001），含息，比只看加權指數準確。</p>
+          <p><b>S&amp;P 500、那斯達克、道瓊</b>　slickcharts.com 有逐年總報酬表；Trade That Swing 有 5 年到 150 年的年化統計。</p>
+          <p><b>全球指數</b>　iShares MSCI ACWI ETF（ACWI）的基金月報。</p>
+          <p><b>黃金</b>　World Gold Council 的 Gold Returns，或 SPDR Gold Trust（GLD）的績效頁。</p>
+          <p>更新後記得一併改掉程式裡 <code>ASSETS</code> 陣列的 <code>asOf</code> 日期。</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel" id="pledgePanel" hidden>
+      <h2>質押試算</h2>
+      <p class="sub" id="plSub"></p>
+      <div class="bd" id="plStats" style="margin-bottom:16px"></div>
+      <svg id="plChart" viewBox="0 0 760 260" role="img" aria-labelledby="plTitle">
+        <title id="plTitle">質押債務與維持率</title>
+      </svg>
+      <p class="note" id="plNote" style="margin-top:12px"></p>
+      <div class="tablewrap scroll" style="margin-top:14px;max-height:280px">
+        <table id="plTbl">
+          <thead><tr><th>年齡</th><th>當年支出</th><th>配息</th><th>當年質借</th>
+            <th>期末債務</th><th>擔保品市值</th><th>維持率</th><th>狀態</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>資產走勢</h2>
+      <p class="sub" id="chartSub"></p>
+      <svg id="chart" viewBox="0 0 760 300" role="img" aria-labelledby="chTitle">
+        <title id="chTitle">退休後每年年底的資產餘額</title>
+      </svg>
+      <p class="note" id="chartNote"></p>
+    </section>
+
+    <section class="panel">
+      <h2>情境並排比較</h2>
+      <p class="sub">把目前的設定存成一個情境，改完參數再存一個，就能並排比較。</p>
+      <div class="blend" style="border-top:0;padding-top:0;margin-top:0;margin-bottom:14px">
+        <input id="scName" type="text" placeholder="情境名稱，例如：年支出 150 萬"
+          style="flex:1 1 220px;padding:8px 10px;border:1px solid var(--line);border-radius:2px;background:#fcfcfa">
+        <button type="button" id="scAdd">存成情境</button>
+        <button type="button" id="scClear" style="background:var(--faint)">全部清除</button>
+      </div>
+      <div class="scroll">
+        <table id="scTbl">
+          <thead><tr><th>情境</th><th>每月退休金</th><th>年支出</th><th>報酬率</th>
+            <th>期末資產</th><th>期間最低</th><th>結果</th><th>所需報酬</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note" id="scNote" style="margin-top:12px">還沒有情境。調好參數後按「存成情境」。</p>
+      <div class="blend">
+        <button type="button" id="expCsv">匯出 CSV</button>
+        <button type="button" id="expPptx" style="background:var(--li)">產生 PPTX 報告</button>
+        <div class="lab" id="expNote" style="flex:1 1 200px">CSV 含年度明細與情境比較；PPTX 是一份可直接簡報的摘要。</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>年度明細</h2>
+      <p class="sub">支出已隨通膨逐年增加；金額四捨五入到元。</p>
+      <div class="tablewrap scroll">
+        <table id="tbl">
+          <thead><tr>
+            <th>年齡</th><th>期初資產</th><th>投資損益</th>
+            <th>勞退</th><th>勞保</th><th>國保</th><th>年支出</th><th>期末資產</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  本工具為試算，不是投資建議，也不是勞保局或衛福部的正式核定。實際可領金額以主管機關核定為準；勞退月退休金至少每三年會依當時利率與專戶餘額重新核算，實際金額會變動。投資報酬與通膨為假設值，真實市場逐年波動，長期平均相同但順序不同的結果可能差異很大。
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+var F = {
+  ageNow:48, ageRetire:48, ageEnd:85,
+  liYears:22, liSalary:45800, liClaim:63, liLegal:65,
+  lpBalance:5000000, lpReturn:5, lpClaim:60, lpLife:23, lpRate:1.1473,
+  npYears:12, npBase:21103, npClaim:65, npB:true,
+  hasSpouse:false,
+  sAgeNow:47, sLiYears:20, sLiSalary:35000, sLiClaim:63,
+  sLpBalance:800000, sLpClaim:60, sNpYears:15,
+  principal:52000000, spend:1500000, ret:5, infl:2, keep:0,
+  usePledge:false, plCollateral:33670000, plDebt:3480000, plRate:2.9, plYield:2.02,
+  plLtv:60, plCall:130, plFloor:250, plStop:300
+};
+var KEY = "retirement-calc-v1";
+
+/* ---------------------------------------------------------------
+   歷史報酬資料
+   lt = 長期年化, y10 = 近十年年化, y5 = 近五年年化（%，含息）
+   est 陣列列出哪幾欄是概估值，會在畫面上標 °
+   資料會過期，請依面板下方的來源自行更新，並改掉 asOf。
+   --------------------------------------------------------------- */
+var ASSETS_ASOF = "2026 年 8–9 月";
+var ASSETS = [
+  { id:"acwi",  name:"全球指數",     note:"MSCI ACWI",           lt:7.5,  y10:12.4, y5:12.5, est:["lt","y5"] },
+  { id:"spx",   name:"S&P 500",     note:"美國大型股",           lt:9.6,  y10:15.4, y5:16.0, est:["y5"] },
+  { id:"ndx",   name:"那斯達克 100", note:"科技權重高",           lt:13.0, y10:18.5, y5:19.0, est:["lt","y10","y5"] },
+  { id:"dji",   name:"道瓊工業指數", note:"30 檔大型股",          lt:8.3,  y10:12.0, y5:12.0, est:["lt","y10","y5"] },
+  { id:"taiex", name:"台灣加權報酬", note:"含息，IR0001",         lt:9.0,  y10:18.0, y5:23.0, est:["lt","y10","y5"] },
+  { id:"f0050", name:"0050",        note:"元大台灣 50",          lt:9.8,  y10:21.2, y5:26.1, est:["lt"] },
+  { id:"f0056", name:"0056",        note:"元大高股息",           lt:7.5,  y10:16.2, y5:21.0, est:["lt"] },
+  { id:"f00713",name:"00713",       note:"高息低波，2017 成立",   lt:10.0, y10:null, y5:13.0, est:["lt","y5"] },
+  { id:"tsmc",  name:"台積電",       note:"單一個股",             lt:18.0, y10:30.0, y5:33.0, est:["lt","y10","y5"] },
+  { id:"gold",  name:"黃金現貨",     note:"美元計價，不生息",      lt:8.0,  y10:11.2, y5:18.0, est:["lt","y5"] }
+];
+var HORIZON_NAME = { lt:"長期", y10:"近 10 年", y5:"近 5 年" };
+
+/* ---------------------------------------------------------------
+   逐年報酬序列（%）。用來做「報酬順序」回測。
+   每一筆都是完整曆年，已排除 2026 的不完整年度。
+   spx  S&P 500 總報酬（含息），slickcharts，1926–2025
+   ndx  Nasdaq 100 價格報酬，slickcharts，1986–2025
+   dji  道瓊工業指數 價格報酬，slickcharts，1926–2025
+   acwi MSCI ACWI 總報酬（ACWI ETF 代表），chartrow，2009–2025
+   gold 黃金（GLD 收盤價），chartrow，2005–2025
+   f0050 0050 還原除權息報酬，havocFuture，2004–2025
+   沒有列在這裡的標的就沒有逐年資料，回測時會被排除。
+   --------------------------------------------------------------- */
+var SERIES = {
+  spx: { from:1926, src:"slickcharts 總報酬", r:[
+    11.62,37.49,43.61,-8.42,-24.90,-43.34,-8.19,53.99,-1.44,47.67,
+    33.92,-35.03,31.12,-0.41,-9.78,-11.59,20.34,25.90,19.75,36.44,
+    -8.07,5.71,5.50,18.79,31.71,24.02,18.37,-0.99,52.62,31.56,
+    6.56,-10.78,43.36,11.96,0.47,26.89,-8.73,22.80,16.48,12.45,
+    -10.06,23.98,11.06,-8.50,3.86,14.30,19.00,-14.69,-26.47,37.23,
+    23.93,-7.16,6.57,18.61,32.50,-4.92,21.55,22.56,6.27,31.73,
+    18.67,5.25,16.61,31.69,-3.10,30.47,7.62,10.08,1.32,37.58,
+    22.96,33.36,28.58,21.04,-9.10,-11.89,-22.10,28.68,10.88,4.91,
+    15.79,5.49,-37.00,26.46,15.06,2.11,16.00,32.39,13.69,1.38,
+    11.96,21.83,-4.38,31.49,18.40,28.71,-18.11,26.29,25.02,17.88] },
+  ndx: { from:1986, src:"slickcharts 價格報酬", r:[
+    6.89,10.50,13.54,26.17,-10.41,64.99,8.87,10.58,1.50,42.54,
+    42.54,20.63,85.31,101.95,-36.84,-32.65,-37.58,49.12,10.44,1.49,
+    6.79,18.67,-41.89,53.54,19.22,2.70,16.82,34.99,17.94,8.43,
+    5.89,31.52,-1.04,37.96,47.58,26.63,-32.97,53.81,24.88,20.17] },
+  dji: { from:1926, src:"slickcharts 價格報酬", r:[
+    0.34,28.75,48.22,-17.17,-33.77,-52.67,-23.07,66.69,4.14,38.53,
+    24.82,-32.82,28.06,-2.92,-12.72,-15.38,7.61,13.81,12.09,26.65,
+    -8.14,2.23,-2.13,12.88,17.63,14.37,8.42,-3.77,43.96,20.77,
+    2.27,-12.77,33.96,16.40,-9.34,18.71,-10.81,17.00,14.57,10.88,
+    -18.94,15.20,4.27,-15.19,4.82,6.11,14.58,-16.58,-27.57,38.32,
+    17.86,-17.27,-3.15,4.19,14.94,-9.23,19.60,20.27,-3.74,27.66,
+    22.58,2.26,11.85,26.96,-4.34,20.32,4.17,13.72,2.14,33.45,
+    26.01,22.64,16.10,25.22,-6.17,-7.10,-16.76,25.32,3.15,-0.61,
+    16.29,6.43,-33.84,18.82,11.02,5.53,7.26,26.50,7.52,-2.23,
+    13.42,25.08,-5.63,22.34,7.25,18.73,-8.78,13.70,12.88,12.97] },
+  acwi: { from:2009, src:"chartrow 總報酬", r:[
+    30.4,10.7,-9.9,14.0,22.4,3.8,-2.2,8.4,24.3,-9.1,
+    26.6,16.3,18.7,-18.4,22.3,17.4,22.4] },
+  gold: { from:2005, src:"chartrow GLD", r:[
+    17.8,22.5,30.5,4.9,24.0,29.3,9.6,6.6,-28.3,-2.2,
+    -10.7,8.0,12.8,-1.9,17.9,24.8,-4.1,-0.8,12.7,26.7,63.7] },
+  f0050: { from:2004, src:"havocFuture 還原除權息", r:[
+    5.62,10.03,21.12,10.31,-43.32,75.00,13.13,-15.81,11.92,11.68,
+    16.66,-6.28,19.65,18.14,-4.94,33.52,31.14,21.92,-21.37,27.45,
+    48.64,36.86] }
+};
+
+var horizon = "lt";
+var weights = { acwi:100 };
+
+var ids = Object.keys(F);
+var $ = function(id){ return document.getElementById(id); };
+
+function readForm(){
+  var v = {};
+  ids.forEach(function(k){
+    var el = $(k);
+    if(!el) { v[k] = F[k]; return; }
+    v[k] = (el.type === "checkbox") ? el.checked : parseFloat(el.value);
+    if(typeof v[k] === "number" && !isFinite(v[k])) v[k] = 0;
+  });
+  return v;
+}
+function writeForm(v){
+  ids.forEach(function(k){
+    var el = $(k); if(!el) return;
+    if(el.type === "checkbox") el.checked = !!v[k]; else el.value = v[k];
+  });
+}
+
+/* ---------- pension formulas ---------- */
+
+// 勞保老年年金：A式與B式擇優，再依請領年齡加減給
+function laborInsurance(years, salary, claimAge, legalAge){
+  var a = salary * years * 0.00775 + 3000;
+  var b = salary * years * 0.0155;
+  var base = Math.max(a, b);
+  var diff = claimAge - legalAge;              // 負數＝提前
+  var adj = Math.max(-5, Math.min(5, diff));   // 最多提前或延後 5 年
+  return { a:a, b:b, base:base, adj:adj, monthly: Math.max(0, base * (1 + 0.04 * adj)) };
+}
+
+// 勞退月退休金：專戶結算金額 ÷ 期初年金現值因子 ÷ 12
+function annuityFactor(ratePct, lifeYears){
+  var i = ratePct / 100, T = lifeYears;
+  if(i <= 0) return T;                          // 零利率時因子即為年數
+  var m = Math.pow(1 + i, 1/12);
+  return (1 - Math.pow(1/(1+i), T)) / (12 * (m - 1)) * m;
+}
+function laborPension(balance, returnPct, ageNow, claimAge, ratePct, lifeYears){
+  var grow = Math.max(0, claimAge - ageNow);
+  var fv = balance * Math.pow(1 + returnPct/100, grow);
+  var factor = annuityFactor(ratePct, lifeYears);
+  return { fv:fv, factor:factor, monthly: factor > 0 ? fv / factor / 12 : 0,
+           from:claimAge, to:claimAge + lifeYears };
+}
+
+// 國民年金：A式 月投保金額×年資×0.65%＋4,872；B式 月投保金額×年資×1.3%
+function nationalPension(years, base, forceB){
+  var a = base * years * 0.0065 + 4872;
+  var b = base * years * 0.013;
+  return { a:a, b:b, monthly: forceB ? b : Math.max(a, b) };
+}
+
+/* ---------- build one person's income schedule ---------- */
+function person(p){
+  var li = laborInsurance(p.liYears, p.liSalary, p.liClaim, p.liLegal);
+  var lp = laborPension(p.lpBalance, p.lpReturn, p.ageNow, p.lpClaim, p.lpRate, p.lpLife);
+  var np = nationalPension(p.npYears, p.npBase, p.npB);
+  return { li:li, lp:lp, np:np, ageNow:p.ageNow, liClaim:p.liClaim, npClaim:p.npClaim };
+}
+function incomeAt(P, age){
+  var li = age >= P.liClaim ? P.li.monthly * 12 : 0;
+  var lp = (age >= P.lp.from && age < P.lp.to) ? P.lp.monthly * 12 : 0;
+  var np = age >= P.npClaim ? P.np.monthly * 12 : 0;
+  return { li:li, lp:lp, np:np, all: li + lp + np };
+}
+
+/* ---------- projection ---------- */
+function project(v, me, sp, ratePct){
+  var r = ratePct / 100, infl = v.infl / 100;
+  var assets = v.principal, rows = [], depleted = null, low = assets;
+  var years = Math.max(0, Math.round(v.ageEnd - v.ageNow));
+  for(var t = 1; t <= years; t++){
+    var age = v.ageNow + t;
+    var open = assets;
+    var gain = open * r;
+    var inc = incomeAt(me, age);
+    var lp = inc.lp, li = inc.li, np = inc.np;
+    if(sp){
+      var sAge = v.sAgeNow + t;
+      var si = incomeAt(sp, sAge);
+      lp += si.lp; li += si.li; np += si.np;
+    }
+    // 尚未停止工作的年度不動用本金，也不計退休支出
+    var working = age <= v.ageRetire;
+    var spend = working ? 0 : v.spend * Math.pow(1 + infl, t);
+    assets = open + gain + lp + li + np - spend;
+    if(assets < low) low = assets;
+    if(assets < 0 && depleted === null) depleted = age;
+    rows.push({ age:age, open:open, gain:gain, lp:lp, li:li, np:np,
+                spend:spend, close:assets });
+  }
+  return { rows:rows, end:assets, low:low, depleted:depleted };
+}
+
+// 求出剛好守得住的最低年化報酬率
+function solveRate(v, me, sp){
+  var floor = v.keep || 0;
+  var lo = -5, hi = 20;
+  if(project(v, me, sp, hi).low < floor) return null;
+  if(project(v, me, sp, lo).low >= floor) return lo;
+  for(var k = 0; k < 60; k++){
+    var mid = (lo + hi) / 2;
+    if(project(v, me, sp, mid).low >= floor) hi = mid; else lo = mid;
+  }
+  return hi;
+}
+
+/* ---------- 逐年順序回測 ---------- */
+function projectSeq(v, me, sp, rates){
+  var infl = v.infl / 100;
+  var assets = v.principal, path = [assets], depleted = null, low = assets;
+  var years = rates.length;
+  for(var t = 1; t <= years; t++){
+    var age = v.ageNow + t;
+    var r = rates[t-1] / 100;
+    var inc = incomeAt(me, age);
+    var tot = inc.all;
+    if(sp) tot += incomeAt(sp, v.sAgeNow + t).all;
+    var spend = (age <= v.ageRetire) ? 0 : v.spend * Math.pow(1 + infl, t);
+    assets = assets * (1 + r) + tot - spend;
+    if(assets < low) low = assets;
+    if(assets < 0 && depleted === null) depleted = age;
+    path.push(assets);
+  }
+  return { path:path, end:assets, low:low, depleted:depleted };
+}
+// 依目前權重組出共同年份的混合報酬序列
+function blendedSeries(){
+  var picked = [];
+  ASSETS.forEach(function(a){
+    var w = weights[a.id] || 0;
+    if(w > 0 && SERIES[a.id]) picked.push({ a:a, w:w, s:SERIES[a.id] });
+  });
+  var skipped = [];
+  ASSETS.forEach(function(a){
+    if((weights[a.id] || 0) > 0 && !SERIES[a.id]) skipped.push(a.name);
+  });
+  if(!picked.length) return { years:[], rates:[], skipped:skipped, picked:picked };
+  var from = Math.max.apply(null, picked.map(function(p){ return p.s.from; }));
+  var to = Math.min.apply(null, picked.map(function(p){ return p.s.from + p.s.r.length - 1; }));
+  var wsum = picked.reduce(function(s, p){ return s + p.w; }, 0);
+  var years = [], rates = [];
+  for(var y = from; y <= to; y++){
+    var acc = 0;
+    picked.forEach(function(p){ acc += p.w * p.s.r[y - p.s.from]; });
+    years.push(y); rates.push(acc / wsum);
+  }
+  return { years:years, rates:rates, skipped:skipped, picked:picked };
+}
+function runSequence(){
+  var v = readForm();
+  var built = buildPeople(v);
+  var bs = blendedSeries();
+  var horizonYears = Math.max(1, Math.round(v.ageEnd - v.ageNow));
+  var out = { runs:[], bs:bs, horizon:horizonYears };
+  if(!bs.rates.length) return out;
+  var n = bs.rates.length, wrapped = false;
+  for(var i = 0; i < n; i++){
+    var seq = [];
+    for(var k = 0; k < horizonYears; k++){
+      if(i + k >= n) wrapped = true;
+      seq.push(bs.rates[(i + k) % n]);
+    }
+    var res = projectSeq(v, built.me, built.sp, seq);
+    res.startYear = bs.years[i];
+    out.runs.push(res);
+  }
+  out.wrapped = wrapped;
+  out.keep = v.keep || 0;
+  out.v = v;
+  return out;
+}
+
+function n0(x){ return Math.round(x).toLocaleString("en-US"); }
+function wan(x){
+  var w = x / 10000;
+  if(Math.abs(w) >= 10000) return (w/10000).toFixed(2) + " 億";
+  return n0(w) + " 萬";
+}
+
+/* ---------- timeline ---------- */
+function drawTimeline(v, me, sp, res){
+  var svg = $("timeline");
+  while(svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+  var W = 760, L = 30, R = 24, y0 = 46, h = 26;
+  var a0 = v.ageNow, a1 = v.ageEnd;
+  if(a1 <= a0) return;
+  var x = function(a){ return L + (a - a0) / (a1 - a0) * (W - L - R); };
+  var ns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text){
+    var e = document.createElementNS(ns, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    if(text != null) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  // base track = 靠本金支應
+  el("rect", { x:x(a0), y:y0, width:x(a1)-x(a0), height:h, fill:"var(--principal)", rx:2 });
+
+  // stacked bands for each source, drawn as thin strips under the track
+  var bands = [];
+  function addBand(from, to, color, label){
+    if(to <= from) return;
+    from = Math.max(from, a0); to = Math.min(to, a1);
+    if(to <= from) return;
+    bands.push({ from:from, to:to, color:color, label:label });
+  }
+  addBand(me.lp.from, me.lp.to, "var(--lp)", "勞退");
+  addBand(me.liClaim, a1, "var(--li)", "勞保");
+  addBand(me.npClaim, a1, "var(--np)", "國保");
+  if(sp){
+    var off = v.sAgeNow - v.ageNow; // 配偶事件換算成「我」的年齡軸
+    addBand(sp.lp.from - off, sp.lp.to - off, "var(--lp)", "配偶勞退");
+    addBand(sp.liClaim - off, a1, "var(--li)", "配偶勞保");
+    addBand(sp.npClaim - off, a1, "var(--np)", "配偶國保");
+  }
+  bands.forEach(function(b, i){
+    var yy = y0 + h + 6 + (i % 3) * 5;
+    el("rect", { x:x(b.from), y:yy, width:x(b.to)-x(b.from), height:3.5,
+                 fill:b.color, rx:1.5 });
+  });
+
+  // 資產歸零的位置
+  if(res.depleted !== null){
+    var dx = x(res.depleted);
+    el("rect", { x:dx, y:y0, width:Math.max(1, x(a1)-dx), height:h, fill:"var(--alert)", opacity:"0.85" });
+    el("text", { x:Math.min(dx + 6, W - R - 70), y:y0 - 22, fill:"var(--alert)",
+                 "font-size":"12", "font-weight":"500" }, res.depleted + " 歲資產歸零");
+  }
+
+  // ticks
+  var marks = [{ a:a0, t:"現在 " + a0 }];
+  function mark(a, t){ if(a > a0 && a < a1) marks.push({ a:a, t:t }); }
+  mark(me.lp.from, "勞退 " + me.lp.from);
+  mark(me.liClaim, "勞保 " + me.liClaim);
+  mark(me.npClaim, "國保 " + me.npClaim);
+  marks.push({ a:a1, t:a1 + " 歲" });
+  marks.sort(function(p,q){ return p.a - q.a; });
+  var lastX = -99;
+  marks.forEach(function(m){
+    var mx = x(m.a);
+    el("line", { x1:mx, y1:y0-7, x2:mx, y2:y0+h+2, stroke:"var(--ink)",
+                 "stroke-width":"1", opacity:"0.35" });
+    if(mx - lastX > 64){
+      var anchor = m.a === a1 ? "end" : (m.a === a0 ? "start" : "middle");
+      el("text", { x:mx, y:y0-12, "font-size":"11.5", fill:"var(--muted)",
+                   "text-anchor":anchor }, m.t);
+      lastX = mx;
+    }
+  });
+  el("text", { x:L, y:y0+h+26, "font-size":"11.5", fill:"var(--faint)" },
+     "色帶標示各項年金開始入帳的時點");
+}
+
+/* ---------- asset chart ---------- */
+function drawChart(rows, keep){
+  var svg = $("chart");
+  while(svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+  if(!rows.length) return;
+  var W = 760, H = 300, L = 62, R = 16, T = 14, B = 34;
+  var ns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text){
+    var e = document.createElementNS(ns, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    if(text != null) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  var vals = rows.map(function(r){ return r.close; }).concat([0, keep || 0]);
+  var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+  if(max === min){ max = min + 1; }
+  var pad = (max - min) * 0.08;
+  max += pad; min -= pad;
+  var a0 = rows[0].age, a1 = rows[rows.length-1].age;
+  var x = function(a){ return L + (a - a0) / Math.max(1, a1 - a0) * (W - L - R); };
+  var y = function(val){ return T + (max - val) / (max - min) * (H - T - B); };
+
+  // gridlines
+  for(var g = 0; g <= 4; g++){
+    var val = min + (max - min) * g / 4;
+    var gy = y(val);
+    el("line", { x1:L, y1:gy, x2:W-R, y2:gy, stroke:"var(--line)", "stroke-width":"1" });
+    el("text", { x:L-8, y:gy+4, "font-size":"11", fill:"var(--faint)", "text-anchor":"end" },
+       wan(val));
+  }
+  // zero / keep line
+  if(min < 0 && max > 0){
+    el("line", { x1:L, y1:y(0), x2:W-R, y2:y(0), stroke:"var(--alert)", "stroke-width":"1.5" });
+  }
+  if(keep > 0 && keep >= min && keep <= max){
+    el("line", { x1:L, y1:y(keep), x2:W-R, y2:y(keep), stroke:"var(--lp)",
+                 "stroke-width":"1.5", "stroke-dasharray":"5 4" });
+    el("text", { x:W-R, y:y(keep)-6, "font-size":"11", fill:"var(--lp)",
+                 "text-anchor":"end" }, "想保留的本金");
+  }
+  // area + line
+  var d = "", area = "M" + x(a0) + "," + y(Math.max(min, 0));
+  rows.forEach(function(r, i){
+    d += (i ? "L" : "M") + x(r.age) + "," + y(r.close);
+    area += "L" + x(r.age) + "," + y(r.close);
+  });
+  area += "L" + x(a1) + "," + y(Math.max(min, 0)) + "Z";
+  el("path", { d:area, fill:"var(--principal)", opacity:"0.10" });
+  el("path", { d:d, fill:"none", stroke:"var(--principal)", "stroke-width":"2.2",
+               "stroke-linejoin":"round" });
+
+  // x labels
+  var step = Math.max(1, Math.round((a1 - a0) / 7));
+  for(var a = a0; a <= a1; a += step){
+    el("text", { x:x(a), y:H-12, "font-size":"11", fill:"var(--faint)",
+                 "text-anchor":"middle" }, a);
+  }
+  el("text", { x:W-R, y:H-12, "font-size":"11", fill:"var(--faint)",
+               "text-anchor":"end" }, a1 + " 歲");
+}
+
+/* ---------- 質押模組 ---------- */
+function projectPledge(v, me, sp){
+  var infl = v.infl / 100, r = v.ret / 100;
+  var loan = v.plRate / 100, dy = v.plYield / 100;
+  var call = v.plCall / 100, floorR = v.plFloor / 100, stop = v.plStop / 100;
+  var ltv = v.plLtv / 100;
+  var assets = v.principal, debt = v.plDebt, coll = v.plCollateral;
+  var rows = [], worst = Infinity, firstCall = null, firstStop = null, forced = 0;
+  var years = Math.max(0, Math.round(v.ageEnd - v.ageNow));
+  for(var t = 1; t <= years; t++){
+    var age = v.ageNow + t;
+    var spend = (age <= v.ageRetire) ? 0 : v.spend * Math.pow(1 + infl, t);
+    var div = assets * dy;
+    var inc = incomeAt(me, age).all + (sp ? incomeAt(sp, v.sAgeNow + t).all : 0);
+    var need = Math.max(spend - div - inc, 0);
+    // 借款上限：成數上限，以及自訂的停止新增借款門檻
+    var capLtv = Math.max(0, coll * ltv - debt);
+    var capStop = Math.max(0, coll / stop - debt);
+    var borrow = Math.min(need, capLtv, capStop);
+    var shortfall = need - borrow;          // 借不到的部分只能賣股
+    debt = debt * (1 + loan) + borrow;
+    var surplus = Math.max(div + inc + borrow - spend, 0); // 用不完的現金留回組合
+    assets = assets * (1 + r) - div + surplus - shortfall;
+    coll = coll * (1 + r) - shortfall;      // 保守起見，賣掉的都算在擔保品上
+    var ratio = debt > 0 ? coll / debt : Infinity;
+    if(ratio < worst) worst = ratio;
+    var state = "正常";
+    if(ratio < call){ state = "追繳"; if(firstCall === null) firstCall = age; }
+    else if(ratio < floorR){ state = "低於安全線"; }
+    else if(ratio < stop){ state = "停止新增"; if(firstStop === null) firstStop = age; }
+    if(shortfall > 0) forced += shortfall;
+    rows.push({ age:age, spend:spend, div:div + inc, borrow:borrow, debt:debt,
+                coll:coll, ratio:ratio, state:state, shortfall:shortfall });
+  }
+  return { rows:rows, debt:debt, coll:coll, worst:worst, firstCall:firstCall,
+           firstStop:firstStop, forced:forced, assets:assets };
+}
+function renderPledge(v, me, sp){
+  var panel = $("pledgePanel");
+  panel.hidden = !v.usePledge;
+  $("pledgeBody").hidden = !v.usePledge;
+  if(!v.usePledge) return;
+  var p = projectPledge(v, me, sp);
+  var last = p.rows.length ? p.rows[p.rows.length-1] : null;
+  $("plSub").textContent = "配息與年金先用，缺口才質借；借款受成數上限與自訂門檻雙重限制。"
+    + "利率 " + v.plRate + "%，追繳線 " + v.plCall + "%，安全線 " + v.plFloor + "%。";
+  var st = $("plStats"); st.innerHTML = "";
+  function c(k, val, note, color){
+    var d = document.createElement("div");
+    d.innerHTML = '<div class="k">' + k + '</div><div class="v" style="color:' + (color || "var(--ink)")
+      + '">' + val + '</div><div class="n">' + note + '</div>';
+    st.appendChild(d);
+  }
+  c("期末質押債務", last ? wan(last.debt) : "—", "到 " + v.ageEnd + " 歲");
+  c("期間最低維持率", isFinite(p.worst) ? (p.worst*100).toFixed(0) + "%" : "無借款",
+    p.firstCall !== null ? (p.firstCall + " 歲曾被追繳") : "全程未觸及追繳線",
+    p.firstCall !== null ? "var(--alert)"
+      : (p.worst < v.plFloor/100 ? "var(--lp)" : "var(--ok)"));
+  c("被迫賣股金額", p.forced > 0 ? wan(p.forced) : "0",
+    p.forced > 0 ? "借不到的缺口只能變現" : "全程不必賣股", p.forced > 0 ? "var(--lp)" : "var(--ok)");
+  c("目前可借上限", wan(v.plCollateral * v.plLtv/100 - v.plDebt),
+    "擔保品 " + wan(v.plCollateral) + " × " + v.plLtv + "% − 現有債務");
+
+  // 圖：維持率折線
+  var svg = $("plChart");
+  while(svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+  var ns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text){
+    var e = document.createElementNS(ns, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    if(text != null) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  var pts = p.rows.filter(function(rw){ return isFinite(rw.ratio); });
+  if(pts.length){
+    var W = 760, H = 260, L = 58, R = 18, T = 12, B = 30;
+    var vals = pts.map(function(rw){ return Math.min(rw.ratio*100, 1200); });
+    var mx = Math.max.apply(null, vals.concat([v.plStop + 50]));
+    var mn = Math.min.apply(null, vals.concat([v.plCall - 30, 0]));
+    var x = function(i){ return L + i / Math.max(1, pts.length - 1) * (W - L - R); };
+    var y = function(val){ return T + (mx - val) / (mx - mn) * (H - T - B); };
+    [[v.plCall, "var(--alert)", "追繳線"], [v.plFloor, "var(--lp)", "安全線"],
+     [v.plStop, "var(--faint)", "停止新增"]].forEach(function(ln){
+      el("line", { x1:L, y1:y(ln[0]), x2:W-R, y2:y(ln[0]), stroke:ln[1],
+                   "stroke-width":"1.3", "stroke-dasharray":"5 4" });
+      el("text", { x:W-R, y:y(ln[0])-5, "font-size":"11", fill:ln[1], "text-anchor":"end" },
+         ln[2] + " " + ln[0] + "%");
+    });
+    var d = "";
+    pts.forEach(function(rw, i){ d += (i ? "L" : "M") + x(i) + "," + y(Math.min(rw.ratio*100, 1200)); });
+    el("path", { d:d, fill:"none", stroke:"var(--principal)", "stroke-width":"2.2" });
+    for(var g = 0; g <= 3; g++){
+      var val = mn + (mx - mn) * g / 3;
+      el("text", { x:L-8, y:y(val)+4, "font-size":"11", fill:"var(--faint)", "text-anchor":"end" },
+         Math.round(val) + "%");
+    }
+    var step = Math.max(1, Math.round(pts.length / 7));
+    for(var i = 0; i < pts.length; i += step)
+      el("text", { x:x(i), y:H-10, "font-size":"11", fill:"var(--faint)", "text-anchor":"middle" },
+         pts[i].age);
+  }
+  var notes = [];
+  if(p.firstCall !== null) notes.push("這組假設下 " + p.firstCall + " 歲會被追繳，代表借款規模過大或報酬假設太樂觀。");
+  else if(p.worst < v.plFloor/100) notes.push("雖然沒被追繳，但維持率曾跌破你自訂的安全線 " + v.plFloor + "%。");
+  else notes.push("全程維持率都在自訂安全線以上。");
+  notes.push("要留意的是：券商借款期限通常只有 6 個月、最多展延 2 次，續不續由券商決定；"
+    + "利率每 6 個月調整；質押期間股利仍歸你。市場重挫時追繳與借不到款會同時發生，"
+    + "請確保支出水庫足以補繳，不必變賣部位。");
+  $("plNote").textContent = notes.join(" ");
+
+  var tb = $("plTbl").querySelector("tbody");
+  tb.innerHTML = "";
+  p.rows.forEach(function(rw){
+    var tr = document.createElement("tr");
+    if(rw.state === "追繳") tr.className = "neg";
+    else if(rw.state !== "正常") tr.className = "mark";
+    tr.innerHTML = "<td>" + rw.age + "</td><td>" + n0(rw.spend) + "</td><td>" + n0(rw.div)
+      + "</td><td>" + n0(rw.borrow) + "</td><td>" + n0(rw.debt) + "</td><td>" + n0(rw.coll)
+      + "</td><td>" + (isFinite(rw.ratio) ? (rw.ratio*100).toFixed(0) + "%" : "—")
+      + "</td><td>" + rw.state + "</td>";
+    tb.appendChild(tr);
+  });
+  window.__pledge = p;
+}
+
+function drawFan(out){
+  var svg = $("fan");
+  while(svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+  var runs = out.runs; if(!runs.length) return;
+  var W = 760, H = 290, L = 64, R = 18, T = 12, B = 32;
+  var ns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text){
+    var e = document.createElementNS(ns, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    if(text != null) e.textContent = text;
+    svg.appendChild(e); return e;
+  }
+  var n = runs[0].path.length;
+  var max = -Infinity, min = Infinity;
+  runs.forEach(function(r){ r.path.forEach(function(p){
+    if(p > max) max = p; if(p < min) min = p; }); });
+  if(min > 0) min = 0;
+  var pad = (max - min) * 0.06; max += pad;
+  var x = function(i){ return L + i / (n - 1) * (W - L - R); };
+  var y = function(val){ return T + (max - val) / (max - min) * (H - T - B); };
+  for(var g = 0; g <= 4; g++){
+    var val = min + (max - min) * g / 4, gy = y(val);
+    el("line", { x1:L, y1:gy, x2:W-R, y2:gy, stroke:"var(--line)", "stroke-width":"1" });
+    el("text", { x:L-8, y:gy+4, "font-size":"11", fill:"var(--faint)", "text-anchor":"end" }, wan(val));
+  }
+  if(min < 0) el("line", { x1:L, y1:y(0), x2:W-R, y2:y(0), stroke:"var(--alert)", "stroke-width":"1.5" });
+  if(out.keep > 0 && out.keep <= max)
+    el("line", { x1:L, y1:y(out.keep), x2:W-R, y2:y(out.keep), stroke:"var(--lp)",
+                 "stroke-width":"1.3", "stroke-dasharray":"5 4" });
+  function pathOf(r){
+    var d = "";
+    r.path.forEach(function(p, i){ d += (i ? "L" : "M") + x(i) + "," + y(p); });
+    return d;
+  }
+  var sorted = runs.slice().sort(function(a, b){ return a.end - b.end; });
+  var worst = sorted[0], median = sorted[Math.floor(sorted.length/2)];
+  runs.forEach(function(r){
+    el("path", { d:pathOf(r), fill:"none",
+      stroke: r.depleted !== null ? "var(--alert)" : "var(--principal)",
+      "stroke-width":"1", opacity: r.depleted !== null ? "0.5" : "0.16" });
+  });
+  el("path", { d:pathOf(median), fill:"none", stroke:"var(--principal)", "stroke-width":"2.4" });
+  el("path", { d:pathOf(worst), fill:"none", stroke:"var(--alert)", "stroke-width":"2.4" });
+  var step = Math.max(1, Math.round((n - 1) / 7));
+  for(var i = 0; i < n; i += step){
+    el("text", { x:x(i), y:H-11, "font-size":"11", fill:"var(--faint)", "text-anchor":"middle" },
+       out.v.ageNow + i);
+  }
+  el("text", { x:W-R, y:H-11, "font-size":"11", fill:"var(--faint)", "text-anchor":"end" },
+     out.v.ageEnd + " 歲");
+}
+function showSequence(){
+  var out = runSequence();
+  var box = $("seqResult");
+  box.hidden = false;
+  var bs = out.bs;
+  if(!out.runs.length){
+    $("seqSub").textContent = "選到的標的都沒有逐年資料，無法回測。";
+    $("seqStats").innerHTML = ""; $("seqNote").textContent = "";
+    while($("fan").childNodes.length > 1) $("fan").removeChild($("fan").lastChild);
+    return;
+  }
+  var ok = out.runs.filter(function(r){ return r.depleted === null && r.low >= out.keep; }).length;
+  var rate = ok / out.runs.length * 100;
+  var sorted = out.runs.slice().sort(function(a, b){ return a.end - b.end; });
+  var worst = sorted[0], median = sorted[Math.floor(sorted.length/2)], best = sorted[sorted.length-1];
+  $("seqSub").textContent = "用 " + bs.years[0] + "–" + bs.years[bs.years.length-1]
+    + " 的實際年度報酬，依真實先後順序，從每一個年份各起跑一次，共 " + out.runs.length + " 組。";
+  var st = $("seqStats"); st.innerHTML = "";
+  function c(k, val, note, color){
+    var d = document.createElement("div");
+    d.innerHTML = '<div class="k">' + k + '</div><div class="v" style="color:' + (color || "var(--ink)")
+      + '">' + val + '</div><div class="n">' + note + '</div>';
+    st.appendChild(d);
+  }
+  c("撐到最後的比率", rate.toFixed(0) + "%",
+    ok + " / " + out.runs.length + " 組" + (out.keep > 0 ? "（且不低於保留本金）" : ""),
+    rate >= 90 ? "var(--ok)" : (rate >= 70 ? "var(--lp)" : "var(--alert)"));
+  c("最差的起跑年", worst.startYear + " 年",
+    worst.depleted !== null ? (worst.depleted + " 歲用完") : ("期末 " + wan(worst.end)),
+    "var(--alert)");
+  c("中位數期末資產", wan(median.end), "起跑年 " + median.startYear);
+  c("最好的起跑年", best.startYear + " 年", "期末 " + wan(best.end), "var(--ok)");
+  drawFan(out);
+  var notes = [];
+  if(bs.skipped.length) notes.push(bs.skipped.join("、") + " 沒有逐年資料，已排除。");
+  if(out.wrapped) notes.push("歷史長度 " + bs.rates.length + " 年短於試算的 " + out.horizon
+    + " 年，不足的部分從序列開頭循環接續，這段是模擬而非真實順序。");
+  notes.push("每條淡線是一個起跑年份，紅線是最差的一組，粗藍線是中位數。"
+    + "同一組平均報酬，只是先後順序不同，結局可以差很多 —— 這就是報酬順序風險。");
+  $("seqNote").textContent = notes.join(" ");
+  window.__seq = out;
+}
+
+/* ---------- render ---------- */
+function buildPeople(v){
+  var me = person({
+    ageNow:v.ageNow, liYears:v.liYears, liSalary:v.liSalary, liClaim:v.liClaim,
+    liLegal:v.liLegal, lpBalance:v.lpBalance, lpReturn:v.lpReturn, lpClaim:v.lpClaim,
+    lpRate:v.lpRate, lpLife:v.lpLife, npYears:v.npYears, npBase:v.npBase,
+    npClaim:v.npClaim, npB:v.npB
+  });
+  var sp = null;
+  if(v.hasSpouse){
+    sp = person({
+      ageNow:v.sAgeNow, liYears:v.sLiYears, liSalary:v.sLiSalary, liClaim:v.sLiClaim,
+      liLegal:v.liLegal, lpBalance:v.sLpBalance, lpReturn:v.lpReturn, lpClaim:v.sLpClaim,
+      lpRate:v.lpRate, lpLife:v.lpLife, npYears:v.sNpYears, npBase:v.npBase,
+      npClaim:v.npClaim, npB:v.npB
+    });
+  }
+  return { me:me, sp:sp };
+}
+function render(){
+  var v = readForm();
+  $("spouseBody").hidden = !v.hasSpouse;
+
+  var built = buildPeople(v);
+  var me = built.me, sp = built.sp;
+
+  var total = me.li.monthly + me.lp.monthly + me.np.monthly
+            + (sp ? sp.li.monthly + sp.lp.monthly + sp.np.monthly : 0);
+  $("monthlyTotal").innerHTML = n0(total) + '<small>元</small>';
+  $("bdSub").textContent = sp
+    ? "兩人合計，全部到位後每月約 " + n0(total) + " 元，約當每年 " + wan(total*12)
+    : "全部到位後每月約 " + n0(total) + " 元，約當每年 " + wan(total*12);
+
+  // breakdown cards
+  var bd = $("breakdown"); bd.innerHTML = "";
+  function cardOf(color, name, amount, note){
+    var d = document.createElement("div");
+    d.innerHTML = '<div class="k"><span class="sw" style="background:' + color + '"></span>'
+      + name + '</div><div class="v">' + n0(amount) + '</div><div class="n">' + note + '</div>';
+    bd.appendChild(d);
+  }
+  var liSum = me.li.monthly + (sp ? sp.li.monthly : 0);
+  var lpSum = me.lp.monthly + (sp ? sp.lp.monthly : 0);
+  var npSum = me.np.monthly + (sp ? sp.np.monthly : 0);
+  cardOf("var(--li)", "勞保老年年金", liSum,
+    v.liClaim + " 歲起，終身" + (me.li.adj < 0 ? "（已減 " + Math.abs(me.li.adj*4) + "%）"
+      : (me.li.adj > 0 ? "（已增 " + (me.li.adj*4) + "%）" : "")));
+  cardOf("var(--lp)", "勞退專戶", lpSum,
+    v.lpClaim + "–" + (v.lpClaim + v.lpLife) + " 歲，共 " + v.lpLife + " 年");
+  cardOf("var(--np)", "國民年金", npSum, v.npClaim + " 歲起，終身");
+
+  // formula text
+  $("formulaBody").innerHTML =
+    "<p><b>勞保老年年金</b>　A式＝月投保薪資×年資×0.775%＋3,000＝<code>" + n0(me.li.a)
+    + "</code>；B式＝月投保薪資×年資×1.55%＝<code>" + n0(me.li.b)
+    + "</code>。擇優取 <code>" + n0(me.li.base) + "</code>，再依請領年齡調整 "
+    + (me.li.adj * 4) + "%。</p>"
+    + "<p><b>勞退專戶</b>　專戶現值滾存至起領年齡＝<code>" + n0(me.lp.fv)
+    + "</code>；期初年金現值因子＝[1−(1/(1+i))^Tr] ÷ [12×((1+i)^(1/12)−1)] ×(1+i)^(1/12)＝<code>"
+    + me.lp.factor.toFixed(6) + "</code>；月退休金＝結算金額 ÷ 因子 ÷ 12。給付至平均餘命為止。</p>"
+    + "<p><b>國民年金</b>　A式＝月投保金額×年資×0.65%＋4,872＝<code>" + n0(me.np.a)
+    + "</code>；B式＝月投保金額×年資×1.3%＝<code>" + n0(me.np.b) + "</code>。"
+    + (v.npB ? "已勾選只能採 B 式。" : "此處取兩式較高者。") + "</p>";
+
+  // projection
+  var res = project(v, me, sp, v.ret);
+  var keep = v.keep || 0;
+  var ok = res.low >= keep && res.depleted === null;
+  var vd = $("verdict");
+  vd.className = "verdict" + (ok ? "" : " bad");
+  if(res.depleted !== null){
+    $("verdictTitle").textContent = "資產在 " + res.depleted + " 歲用完";
+    $("verdictText").textContent = "距離設定的餘命還有 " + (v.ageEnd - res.depleted)
+      + " 年沒有著落。";
+  } else if(keep > 0 && res.low < keep){
+    $("verdictTitle").textContent = "撐得住，但會動到想保留的本金";
+    $("verdictText").textContent = "期間最低降到 " + wan(res.low) + "，低於你想保留的 "
+      + wan(keep) + "。";
+  } else {
+    $("verdictTitle").textContent = "撐得到 " + v.ageEnd + " 歲";
+    $("verdictText").textContent = "期末還有 " + wan(res.end)
+      + "，期間最低 " + wan(res.low) + "。";
+  }
+
+  var need = solveRate(v, me, sp);
+  $("chartSub").textContent = "年化報酬 " + v.ret + "%、通膨 " + v.infl
+    + "%，支出每年隨通膨增加。";
+  $("chartNote").innerHTML = need === null
+    ? "即使年化報酬拉到 20%，在這組假設下仍達不到目標，需要調整支出或本金。"
+    : "要讓資產全程不低於 " + (keep > 0 ? wan(keep) : "0")
+      + "，年化報酬至少需要 <b>" + need.toFixed(2) + "%</b>。"
+      + (v.ret >= need ? "目前設定的 " + v.ret + "% 有 "
+          + (v.ret - need).toFixed(2) + " 個百分點的緩衝。"
+        : "目前設定的 " + v.ret + "% 還差 " + (need - v.ret).toFixed(2) + " 個百分點。");
+
+  drawTimeline(v, me, sp, res);
+  drawChart(res.rows, keep);
+  renderPledge(v, me, sp);
+  window.__main = { v:v, me:me, sp:sp, res:res, need:need, total:total };
+
+  // table
+  var tb = $("tbl").querySelector("tbody");
+  tb.innerHTML = "";
+  res.rows.forEach(function(r){
+    var tr = document.createElement("tr");
+    if(r.close < 0) tr.className = "neg";
+    else if(r.lp > 0 || r.li > 0 || r.np > 0) tr.className = "";
+    if(r.age === v.lpClaim || r.age === v.liClaim || r.age === v.npClaim) tr.className += " mark";
+    tr.innerHTML = "<td>" + r.age + "</td><td>" + n0(r.open) + "</td><td>" + n0(r.gain)
+      + "</td><td>" + n0(r.lp) + "</td><td>" + n0(r.li) + "</td><td>" + n0(r.np)
+      + "</td><td>" + n0(r.spend) + "</td><td>" + n0(r.close) + "</td>";
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- asset picker ---------- */
+function isEst(a, h){ return a.est.indexOf(h) >= 0; }
+function cellText(a, h){
+  if(a[h] === null || a[h] === undefined) return "—";
+  return a[h].toFixed(1) + (isEst(a, h) ? "°" : "");
+}
+function blend(){
+  var sum = 0, wsum = 0, missing = [];
+  ASSETS.forEach(function(a){
+    var w = weights[a.id] || 0;
+    if(w <= 0) return;
+    wsum += w;
+    if(a[horizon] === null || a[horizon] === undefined){ missing.push(a.name); return; }
+    sum += w * a[horizon];
+  });
+  var used = wsum;
+  missing.forEach(function(nm){
+    var a = ASSETS.filter(function(x){ return x.name === nm; })[0];
+    used -= (weights[a.id] || 0);
+  });
+  return { rate: used > 0 ? sum / used : null, wsum:wsum, missing:missing };
+}
+function buildAssetTable(){
+  var tb = $("assetTable").querySelector("tbody");
+  tb.innerHTML = "";
+  ASSETS.forEach(function(a){
+    var tr = document.createElement("tr");
+    tr.dataset.id = a.id;
+    ["lt","y10","y5"].forEach(function(){});
+    tr.innerHTML =
+      '<td class="name">' + a.name + '<em>' + a.note + '</em></td>' +
+      '<td class="r' + (isEst(a,"lt")?" est":"") + '" data-h="lt">' + cellText(a,"lt") + '</td>' +
+      '<td class="r' + (isEst(a,"y10")?" est":"") + '" data-h="y10">' + cellText(a,"y10") + '</td>' +
+      '<td class="r' + (isEst(a,"y5")?" est":"") + '" data-h="y5">' + cellText(a,"y5") + '</td>' +
+      '<td><input class="w" type="number" min="0" max="100" step="5" value="' +
+        (weights[a.id] || 0) + '" aria-label="' + a.name + ' 權重"></td>';
+    tb.appendChild(tr);
+  });
+  tb.addEventListener("input", function(e){
+    if(!e.target.classList.contains("w")) return;
+    var id = e.target.closest("tr").dataset.id;
+    var val = parseFloat(e.target.value);
+    weights[id] = isFinite(val) && val > 0 ? val : 0;
+    paintAssets();
+  });
+  // 直接改表格裡的報酬數字
+  tb.addEventListener("dblclick", function(e){
+    var td = e.target.closest("td.r"); if(!td) return;
+    var id = td.closest("tr").dataset.id, h = td.dataset.h;
+    var a = ASSETS.filter(function(x){ return x.id === id; })[0];
+    var cur = a[h] === null ? "" : a[h];
+    var ans = window.prompt(a.name + "　" + HORIZON_NAME[h] + " 年化報酬（%）", cur);
+    if(ans === null) return;
+    var num = parseFloat(ans);
+    a[h] = isFinite(num) ? num : null;
+    var i = a.est.indexOf(h); if(i >= 0) a.est.splice(i, 1);
+    td.className = "r";
+    td.textContent = cellText(a, h);
+    paintAssets();
+  });
+}
+function paintAssets(){
+  var b = blend();
+  document.querySelectorAll(".horizons button").forEach(function(btn){
+    btn.setAttribute("aria-pressed", btn.dataset.h === horizon ? "true" : "false");
+  });
+  document.querySelectorAll("#assetTable tbody tr").forEach(function(tr){
+    tr.className = (weights[tr.dataset.id] || 0) > 0 ? "on" : "";
+    tr.querySelectorAll("td.r").forEach(function(td){
+      td.style.fontWeight = td.dataset.h === horizon ? "700" : "400";
+      td.style.opacity = td.dataset.h === horizon ? "1" : "0.45";
+    });
+  });
+  $("wSum").textContent = b.wsum > 0 ? b.wsum + "%" : "—";
+  $("blendLabel").textContent = HORIZON_NAME[horizon] + "　組合歷史年化報酬";
+  $("blendVal").textContent = b.rate === null ? "—" : b.rate.toFixed(2) + "%";
+  $("applyBlend").disabled = (b.rate === null);
+  var notes = [];
+  if(b.wsum === 0) notes.push("先給至少一個標的權重。");
+  else if(Math.abs(b.wsum - 100) > 0.01) notes.push("權重合計 " + b.wsum + "%，已按比例換算。");
+  if(b.missing.length) notes.push(b.missing.join("、") + " 沒有這個期間的資料，已排除在計算外。");
+  $("blendNote").textContent = notes.join("　");
+
+  // 期間落差提醒
+  var lt = 0, y5 = 0, w = 0;
+  ASSETS.forEach(function(a){
+    var ww = weights[a.id] || 0;
+    if(ww <= 0 || a.lt == null || a.y5 == null) return;
+    lt += ww * a.lt; y5 += ww * a.y5; w += ww;
+  });
+  var warn = $("assetWarn");
+  if(w > 0){
+    var gap = (y5 - lt) / w;
+    warn.innerHTML = "資料截至 " + ASSETS_ASOF + "，標示 <b style='color:var(--lp)'>°</b> 的是概估值。"
+      + "這組配置近 5 年的年化比長期高出 <b>" + gap.toFixed(1) + " 個百分點</b>"
+      + "，多半來自 2024–2026 年的 AI 行情。"
+      + "用近期數字規劃三十年的退休，等於假設這段行情會一直持續；規劃時建議用長期那一欄，把近期當成上檔而非基準。";
+  } else {
+    warn.innerHTML = "資料截至 " + ASSETS_ASOF + "，標示 <b style='color:var(--lp)'>°</b> 的是概估值。"
+      + "報酬數字可以雙擊直接修改。";
+  }
+}
+function initAssets(){
+  buildAssetTable();
+  document.querySelectorAll(".horizons button").forEach(function(btn){
+    btn.addEventListener("click", function(){ horizon = btn.dataset.h; paintAssets(); });
+  });
+  $("applyBlend").addEventListener("click", function(){
+    var b = blend(); if(b.rate === null) return;
+    $("ret").value = b.rate.toFixed(2);
+    render();
+    this.textContent = "已套用";
+    var self = this;
+    setTimeout(function(){ self.textContent = "套用到試算"; }, 1600);
+  });
+  $("runSeq").addEventListener("click", showSequence);
+  paintAssets();
+}
+
+/* ---------- 情境比較 ---------- */
+var scenarios = [];
+function snapshot(name){
+  var v = readForm();
+  var b = buildPeople(v);
+  var res = project(v, b.me, b.sp, v.ret);
+  var need = solveRate(v, b.me, b.sp);
+  var monthly = b.me.li.monthly + b.me.lp.monthly + b.me.np.monthly
+    + (b.sp ? b.sp.li.monthly + b.sp.lp.monthly + b.sp.np.monthly : 0);
+  var keep = v.keep || 0;
+  var verdict = res.depleted !== null ? (res.depleted + " 歲用完")
+    : (keep > 0 && res.low < keep ? "動到本金" : "撐得到 " + v.ageEnd + " 歲");
+  return { name:name, v:v, monthly:monthly, end:res.end, low:res.low,
+           verdict:verdict, need:need, rows:res.rows };
+}
+function paintScenarios(){
+  var tb = $("scTbl").querySelector("tbody");
+  tb.innerHTML = "";
+  scenarios.forEach(function(s, i){
+    var tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + s.name + "</td><td>" + n0(s.monthly) + "</td><td>" + wan(s.v.spend)
+      + "</td><td>" + s.v.ret + "%</td><td>" + wan(s.end) + "</td><td>" + wan(s.low)
+      + "</td><td>" + s.verdict + "</td><td>"
+      + (s.need === null ? "達不到" : s.need.toFixed(2) + "%") + "</td>"
+      + '<td><button type="button" data-i="' + i + '" class="rm" '
+      + 'style="border:1px solid var(--line);background:none;border-radius:2px;'
+      + 'padding:3px 9px;cursor:pointer;font-size:12px">刪除</button></td>';
+    tb.appendChild(tr);
+  });
+  $("scNote").textContent = scenarios.length
+    ? "共 " + scenarios.length + " 個情境。「所需報酬」是讓資產全程不低於保留本金的最低年化報酬率。"
+    : "還沒有情境。調好參數後按「存成情境」。";
+}
+/* ---------- 匯出 ---------- */
+function download(name, text, mime){
+  var blob = new Blob(["\ufeff" + text], { type:(mime || "text/csv") + ";charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function exportCsv(){
+  var m = window.__main; if(!m) return;
+  var L = [];
+  L.push("退休金試算匯出," + new Date().toLocaleDateString("zh-TW"));
+  L.push("");
+  L.push("每月退休金");
+  L.push("項目,金額");
+  L.push("勞保老年年金," + Math.round(m.me.li.monthly + (m.sp ? m.sp.li.monthly : 0)));
+  L.push("勞退專戶," + Math.round(m.me.lp.monthly + (m.sp ? m.sp.lp.monthly : 0)));
+  L.push("國民年金," + Math.round(m.me.np.monthly + (m.sp ? m.sp.np.monthly : 0)));
+  L.push("合計," + Math.round(m.total));
+  L.push("");
+  L.push("年度明細");
+  L.push("年齡,期初資產,投資損益,勞退,勞保,國保,年支出,期末資產");
+  m.res.rows.forEach(function(r){
+    L.push([r.age, Math.round(r.open), Math.round(r.gain), Math.round(r.lp),
+            Math.round(r.li), Math.round(r.np), Math.round(r.spend),
+            Math.round(r.close)].join(","));
+  });
+  if(window.__pledge){
+    L.push(""); L.push("質押試算");
+    L.push("年齡,當年支出,配息與年金,當年質借,期末債務,擔保品市值,維持率,狀態");
+    window.__pledge.rows.forEach(function(r){
+      L.push([r.age, Math.round(r.spend), Math.round(r.div), Math.round(r.borrow),
+              Math.round(r.debt), Math.round(r.coll),
+              (isFinite(r.ratio) ? (r.ratio*100).toFixed(0) + "%" : ""), r.state].join(","));
+    });
+  }
+  if(window.__seq){
+    L.push(""); L.push("逐年順序回測");
+    L.push("起跑年,期末資產,期間最低,是否用完");
+    window.__seq.runs.forEach(function(r){
+      L.push([r.startYear, Math.round(r.end), Math.round(r.low),
+              r.depleted !== null ? (r.depleted + "歲") : "否"].join(","));
+    });
+  }
+  if(scenarios.length){
+    L.push(""); L.push("情境比較");
+    L.push("情境,每月退休金,年支出,報酬率,期末資產,期間最低,結果,所需報酬");
+    scenarios.forEach(function(s){
+      L.push([s.name, Math.round(s.monthly), s.v.spend, s.v.ret + "%",
+              Math.round(s.end), Math.round(s.low), s.verdict,
+              s.need === null ? "達不到" : s.need.toFixed(2) + "%"].join(","));
+    });
+  }
+  download("退休金試算.csv", L.join("\n"));
+}
+function loadPptx(cb){
+  if(window.PptxGenJS) return cb();
+  var urls = [
+    "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js",
+    "https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"
+  ];
+  (function tryNext(i){
+    if(i >= urls.length){
+      $("expNote").textContent = "載入簡報元件失敗，請確認網路連線後再試。";
+      return;
+    }
+    var el = document.createElement("script");
+    el.src = urls[i];
+    el.onload = function(){ window.PptxGenJS ? cb() : tryNext(i+1); };
+    el.onerror = function(){ tryNext(i+1); };
+    document.head.appendChild(el);
+  })(0);
+}
+function exportPptx(){
+  var m = window.__main;
+  if(!m){ return; }
+  $("expNote").textContent = "產生中…";
+  loadPptx(function(){
+    var NAVY = "1E2761", GOLD = "C9A227", INK = "23272E", MUTED = "6B7280",
+        BG = "F7F9FC", RED = "B3261E", GREEN = "2C6E49", WHITE = "FFFFFF";
+    var HF = "Microsoft JhengHei";
+    var p = new PptxGenJS();
+    p.layout = "LAYOUT_WIDE";
+    var v = m.v, keep = v.keep || 0;
+
+    function head(s, t, sub){
+      s.background = { color: BG };
+      s.addText(t, { x:0.7, y:0.5, w:11.9, h:0.7, fontFace:HF, fontSize:30, bold:true, color:NAVY });
+      if(sub) s.addText(sub, { x:0.7, y:1.2, w:11.9, h:0.4, fontFace:HF, fontSize:13, color:MUTED });
+    }
+    function stats(s, arr, y){
+      arr.forEach(function(a, i){
+        var x = 0.7 + i * (11.9 / arr.length);
+        var w = 11.9 / arr.length - 0.2;
+        s.addShape(p.ShapeType.roundRect, { x:x, y:y, w:w, h:1.5, rectRadius:0.06,
+          fill:{ color:WHITE }, line:{ color:"E3E8F0" } });
+        s.addText(a[0], { x:x+0.2, y:y+0.2, w:w-0.4, h:0.55, fontFace:HF, fontSize:22,
+          bold:true, color:a[2] || NAVY });
+        s.addText(a[1], { x:x+0.2, y:y+0.8, w:w-0.4, h:0.5, fontFace:HF, fontSize:11, color:MUTED });
+      });
+    }
+
+    // 封面
+    var s1 = p.addSlide(); s1.background = { color: NAVY };
+    s1.addText("退休金試算報告", { x:0.9, y:2.1, w:11, h:1.1, fontFace:HF, fontSize:40,
+      bold:true, color:WHITE });
+    s1.addText((v.hasSpouse ? "兩人合計　" : "") + v.ageNow + " 歲試算至 " + v.ageEnd + " 歲　│　"
+      + new Date().toLocaleDateString("zh-TW"),
+      { x:0.9, y:3.25, w:11, h:0.5, fontFace:HF, fontSize:15, color:"CADCFC" });
+    s1.addText("本報告由試算工具產生，非投資建議；金額以勞保局與衛福部核定為準。",
+      { x:0.9, y:6.5, w:11, h:0.4, fontFace:HF, fontSize:11, color:"8FA0C8" });
+
+    // 退休金
+    var s2 = p.addSlide(); head(s2, "每月退休金從哪裡來", "全部到位後的每月合計");
+    var liS = m.me.li.monthly + (m.sp ? m.sp.li.monthly : 0);
+    var lpS = m.me.lp.monthly + (m.sp ? m.sp.lp.monthly : 0);
+    var npS = m.me.np.monthly + (m.sp ? m.sp.np.monthly : 0);
+    stats(s2, [[n0(liS) + " 元", "勞保老年年金　" + v.liClaim + " 歲起"],
+               [n0(lpS) + " 元", "勞退專戶　" + v.lpClaim + "–" + (v.lpClaim + v.lpLife) + " 歲"],
+               [n0(npS) + " 元", "國民年金　" + v.npClaim + " 歲起"],
+               [n0(m.total) + " 元", "每月合計，約當每年 " + wan(m.total*12), GOLD]], 2.0);
+    s2.addText("勞退採勞保局官方公式：專戶結算金額 ÷ 期初年金現值因子 ÷ 12，給付至平均餘命 "
+      + v.lpLife + " 年為止。勞保 A 式與 B 式擇優後，依請領年齡加減給。",
+      { x:0.7, y:4.0, w:11.9, h:0.8, fontFace:HF, fontSize:13, color:INK });
+
+    // 現金流結論
+    var s3 = p.addSlide(); head(s3, "資產撐得到幾歲", "年化 " + v.ret + "%、通膨 " + v.infl
+      + "%，支出每年遞增");
+    var okAll = m.res.depleted === null && m.res.low >= keep;
+    stats(s3, [[wan(v.principal), "目前本金"],
+               [wan(v.spend), "每年支出（今日幣值）"],
+               [wan(m.res.end), "期末資產", okAll ? GREEN : RED],
+               [m.need === null ? "達不到" : m.need.toFixed(2) + "%", "所需最低年化報酬", GOLD]], 2.0);
+    s3.addText(m.res.depleted !== null
+      ? "資產在 " + m.res.depleted + " 歲用完，距離設定的餘命還有 " + (v.ageEnd - m.res.depleted) + " 年。"
+      : (keep > 0 && m.res.low < keep
+          ? "撐得到 " + v.ageEnd + " 歲，但期間最低降到 " + wan(m.res.low) + "，低於想保留的 " + wan(keep) + "。"
+          : "撐得到 " + v.ageEnd + " 歲，期間最低 " + wan(m.res.low) + "。"),
+      { x:0.7, y:4.0, w:11.9, h:0.6, fontFace:HF, fontSize:16, bold:true,
+        color: okAll ? GREEN : RED });
+    var chartRows = m.res.rows.filter(function(r, i){ return i % Math.max(1,
+      Math.round(m.res.rows.length / 30)) === 0; });
+    s3.addChart(p.ChartType.line, [{ name:"資產（萬元）",
+      labels: chartRows.map(function(r){ return String(r.age); }),
+      values: chartRows.map(function(r){ return Math.round(r.close / 10000); }) }],
+      { x:0.7, y:4.7, w:11.9, h:2.3, chartColors:[NAVY], lineSize:2.5, showLegend:false,
+        catAxisLabelFontFace:HF, valAxisLabelFontFace:HF, catAxisLabelFontSize:10,
+        valAxisLabelFontSize:10, catAxisLabelColor:MUTED, valAxisLabelColor:MUTED,
+        valGridLine:{ color:"E3E8F0" }, catGridLine:{ style:"none" } });
+
+    // 逐年回測
+    if(window.__seq && window.__seq.runs.length){
+      var q = window.__seq;
+      var okN = q.runs.filter(function(r){ return r.depleted === null && r.low >= q.keep; }).length;
+      var sortedQ = q.runs.slice().sort(function(a, b){ return a.end - b.end; });
+      var s4 = p.addSlide();
+      head(s4, "逐年順序回測", "用 " + q.bs.years[0] + "–" + q.bs.years[q.bs.years.length-1]
+        + " 的實際年度報酬，從每個年份各起跑一次，共 " + q.runs.length + " 組");
+      var rateQ = okN / q.runs.length * 100;
+      stats(s4, [[rateQ.toFixed(0) + "%", "撐到最後的比率",
+                  rateQ >= 90 ? GREEN : (rateQ >= 70 ? GOLD : RED)],
+                 [sortedQ[0].startYear + " 年", "最差的起跑年", RED],
+                 [wan(sortedQ[Math.floor(sortedQ.length/2)].end), "中位數期末資產"],
+                 [wan(sortedQ[sortedQ.length-1].end), "最好的結果", GREEN]], 2.0);
+      s4.addChart(p.ChartType.bar, [{ name:"期末資產（萬元）",
+        labels: sortedQ.map(function(r){ return String(r.startYear); }),
+        values: sortedQ.map(function(r){ return Math.round(r.end / 10000); }) }],
+        { x:0.7, y:3.9, w:11.9, h:2.6, barDir:"col", chartColors:[NAVY], showLegend:false,
+          catAxisLabelFontFace:HF, valAxisLabelFontFace:HF, catAxisLabelFontSize:9,
+          valAxisLabelFontSize:10, catAxisLabelColor:MUTED, valAxisLabelColor:MUTED,
+          valGridLine:{ color:"E3E8F0" }, catGridLine:{ style:"none" } });
+      s4.addText("同一段歷史、同樣的平均報酬，只是起跑年份不同，結局可以差很多。這就是報酬順序風險，也是提前退休最關鍵的變數。",
+        { x:0.7, y:6.6, w:11.9, h:0.5, fontFace:HF, fontSize:13, color:INK });
+    }
+
+    // 質押
+    if(window.__pledge && v.usePledge){
+      var pl = window.__pledge;
+      var s5 = p.addSlide();
+      head(s5, "質押試算", "配息與年金先用，缺口才質借；利率 " + v.plRate + "%");
+      var lastPl = pl.rows[pl.rows.length-1];
+      stats(s5, [[wan(lastPl.debt), "期末質押債務"],
+                 [isFinite(pl.worst) ? (pl.worst*100).toFixed(0) + "%" : "無借款", "期間最低維持率",
+                  pl.firstCall !== null ? RED : (pl.worst < v.plFloor/100 ? GOLD : GREEN)],
+                 [pl.forced > 0 ? wan(pl.forced) : "0", "被迫賣股金額",
+                  pl.forced > 0 ? GOLD : GREEN],
+                 [v.plCall + "%", "追繳線", RED]], 2.0);
+      var plRows = pl.rows.filter(function(r, i){ return i % Math.max(1,
+        Math.round(pl.rows.length / 30)) === 0 && isFinite(r.ratio); });
+      s5.addChart(p.ChartType.line, [{ name:"維持率（%）",
+        labels: plRows.map(function(r){ return String(r.age); }),
+        values: plRows.map(function(r){ return Math.round(Math.min(r.ratio*100, 1200)); }) }],
+        { x:0.7, y:3.9, w:11.9, h:2.4, chartColors:[NAVY], lineSize:2.5, showLegend:false,
+          catAxisLabelFontFace:HF, valAxisLabelFontFace:HF, catAxisLabelFontSize:10,
+          valAxisLabelFontSize:10, catAxisLabelColor:MUTED, valAxisLabelColor:MUTED,
+          valGridLine:{ color:"E3E8F0" }, catGridLine:{ style:"none" } });
+      s5.addText("券商借款期限通常 6 個月、最多展延 2 次，續不續由券商決定；利率每 6 個月調整。市場重挫時，追繳與借不到款會同時發生。",
+        { x:0.7, y:6.45, w:11.9, h:0.6, fontFace:HF, fontSize:12.5, color:RED });
+    }
+
+    // 情境比較
+    if(scenarios.length){
+      var s6 = p.addSlide();
+      head(s6, "情境並排比較", "所需報酬是讓資產全程不低於保留本金的最低年化報酬率");
+      var rows = [[
+        { text:"情境", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"每月退休金", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"年支出", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"報酬率", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"期末資產", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"期間最低", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"結果", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } },
+        { text:"所需報酬", options:{ bold:true, color:WHITE, fill:{ color:NAVY } } }
+      ]];
+      scenarios.forEach(function(sc){
+        rows.push([sc.name, n0(sc.monthly), wan(sc.v.spend), sc.v.ret + "%",
+                   wan(sc.end), wan(sc.low), sc.verdict,
+                   sc.need === null ? "達不到" : sc.need.toFixed(2) + "%"]);
+      });
+      s6.addTable(rows, { x:0.7, y:2.0, w:11.9, fontFace:HF, fontSize:12,
+        border:{ type:"solid", color:"E3E8F0", pt:1 }, color:INK, valign:"middle",
+        rowH:0.42, autoPage:false });
+    }
+
+    // 假設與免責
+    var s7 = p.addSlide(); head(s7, "使用的假設", "改變任何一項，結論都會變");
+    var as = [
+      "年齡：目前 " + v.ageNow + " 歲，" + v.ageRetire + " 歲停止工作，試算至 " + v.ageEnd + " 歲",
+      "勞保：年資 " + v.liYears + " 年，月投保薪資 " + n0(v.liSalary) + " 元，" + v.liClaim + " 歲請領",
+      "勞退：專戶 " + wan(v.lpBalance) + "，起領前年化 " + v.lpReturn + "%，" + v.lpClaim
+        + " 歲起領，平均餘命 " + v.lpLife + " 年，預定利率 " + v.lpRate + "%",
+      "國保：年資 " + v.npYears + " 年，月投保金額 " + n0(v.npBase) + " 元" + (v.npB ? "，採 B 式" : ""),
+      "財務：本金 " + wan(v.principal) + "，年支出 " + wan(v.spend) + "，報酬 " + v.ret
+        + "%，通膨 " + v.infl + "%" + (keep > 0 ? "，想保留本金 " + wan(keep) : "")
+    ];
+    s7.addText(as.map(function(t, i){
+      return { text:t, options:{ bullet:true, breakLine:i !== as.length - 1 } };
+    }), { x:0.7, y:2.0, w:11.9, h:3.0, fontFace:HF, fontSize:14, color:INK,
+          paraSpaceAfter:10, lineSpacing:22 });
+    s7.addShape(p.ShapeType.roundRect, { x:0.7, y:5.3, w:11.9, h:1.5, rectRadius:0.06,
+      fill:{ color:"EDF1F8" }, line:{ color:"E3E8F0" } });
+    s7.addText("免責：本報告為情境試算，不是投資建議，也不是勞保局或衛福部的正式核定。實際可領金額以主管機關核定為準；勞退月退休金至少每三年會依當時利率與專戶餘額重新核算。投資報酬與通膨為假設值，真實市場逐年波動，長期平均相同但順序不同，結果可能差很多。",
+      { x:1.0, y:5.5, w:11.3, h:1.1, fontFace:HF, fontSize:12, color:MUTED, lineSpacing:18 });
+
+    p.writeFile({ fileName:"退休金試算報告.pptx" }).then(function(){
+      $("expNote").textContent = "已產生 退休金試算報告.pptx";
+    });
+  });
+}
+
+/* ---------- wiring ---------- */
+function init(){
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){ saved = null; }
+  writeForm(saved && typeof saved === "object" ? Object.assign({}, F, saved) : F);
+  render();
+  initAssets();
+  $("form").addEventListener("input", render);
+  $("form").addEventListener("change", render);
+  $("save").addEventListener("click", function(){
+    try {
+      localStorage.setItem(KEY, JSON.stringify(readForm()));
+      this.textContent = "已存檔";
+      var b = this;
+      setTimeout(function(){ b.textContent = "存檔"; }, 1600);
+    } catch(e){
+      this.textContent = "無法存檔";
+    }
+  });
+  $("reset").addEventListener("click", function(){
+    try { localStorage.removeItem(KEY); } catch(e){}
+    writeForm(F); render();
+  });
+  $("scAdd").addEventListener("click", function(){
+    var nm = $("scName").value.trim() || ("情境 " + (scenarios.length + 1));
+    scenarios.push(snapshot(nm));
+    $("scName").value = "";
+    paintScenarios();
+  });
+  $("scClear").addEventListener("click", function(){ scenarios = []; paintScenarios(); });
+  $("scTbl").addEventListener("click", function(e){
+    if(!e.target.classList.contains("rm")) return;
+    scenarios.splice(parseInt(e.target.dataset.i, 10), 1);
+    paintScenarios();
+  });
+  $("expCsv").addEventListener("click", exportCsv);
+  $("expPptx").addEventListener("click", exportPptx);
+  paintScenarios();
+}
+if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+})();
+</script>
+</body>
+</html>
