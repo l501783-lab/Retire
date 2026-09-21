@@ -416,6 +416,8 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);fon
           <p><b>S&amp;P 500、那斯達克、道瓊</b>　slickcharts.com 有逐年總報酬表；Trade That Swing 有 5 年到 150 年的年化統計。</p>
           <p><b>全球指數</b>　iShares MSCI ACWI ETF（ACWI）的基金月報。</p>
           <p><b>黃金</b>　World Gold Council 的 Gold Returns，或 SPDR Gold Trust（GLD）的績效頁。</p>
+          <p><b>SGOV</b>　Yahoo Finance 的 SGOV 績效頁。2020 年 5 月才成立，逐年資料只有 2021–2025 五年，選它做回測時可用年份會被壓縮得很短。</p>
+          <p><b>台幣定存</b>　中央銀行「重要金融指標」的五大銀行一年期存款牌告利率，取每年 12 個月底值的平均。為稅前數字，未扣利息所得稅與二代健保補充保費。</p>
           <p>更新後記得一併改掉程式裡 <code>ASSETS</code> 陣列的 <code>asOf</code> 日期。</p>
         </div>
       </details>
@@ -497,6 +499,7 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 44px;color:var(--muted);fon
             <th>年齡</th><th>當年<br>報酬</th><th>期初資產<br>（萬）</th><th>投資損益<br>（萬）</th>
             <th>勞退<br>（萬）</th><th>勞保<br>（萬）</th><th>國保<br>（萬）</th>
             <th>年支出<br>（萬）</th><th>期末資產<br>（萬）</th>
+            <th>期末資產<br>今日購買力<br>（萬）</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -547,7 +550,9 @@ var ASSETS = [
   { id:"f0056", name:"0056",        note:"元大高股息",           lt:7.5,  y10:16.2, y5:21.0, est:["lt"] },
   { id:"f00713",name:"00713",       note:"高息低波，2017 成立",   lt:10.0, y10:null, y5:13.0, est:["lt","y5"] },
   { id:"tsmc",  name:"台積電",       note:"單一個股",             lt:18.0, y10:30.0, y5:33.0, est:["lt","y10","y5"] },
-  { id:"gold",  name:"黃金現貨",     note:"美元計價，不生息",      lt:8.0,  y10:11.2, y5:18.0, est:["lt","y5"] }
+  { id:"gold",  name:"黃金現貨",     note:"美元計價，不生息",      lt:8.0,  y10:11.2, y5:18.0, est:["lt","y5"] },
+  { id:"twd",   name:"台幣定存",     note:"五大銀行一年期牌告",     lt:3.17, y10:1.19, y5:1.37, est:[] },
+  { id:"sgov",  name:"SGOV",        note:"美國 0–3 個月國庫券，2020 成立", lt:2.89, y10:null, y5:3.23, est:[] }
 ];
 var HORIZON_NAME = { lt:"長期", y10:"近 10 年", y5:"近 5 年" };
 
@@ -560,6 +565,9 @@ var HORIZON_NAME = { lt:"長期", y10:"近 10 年", y5:"近 5 年" };
    acwi MSCI ACWI 總報酬（ACWI ETF 代表），chartrow，2009–2025
    gold 黃金（GLD 收盤價），chartrow，2005–2025
    f0050 0050 還原除權息報酬，havocFuture，2004–2025
+   sgov SGOV 美國 0–3 個月國庫券 ETF，Yahoo Finance，2021–2025（2020/5 成立，僅 5 年）
+   twd  台幣定存，中央銀行「重要金融指標」五大銀行一年期存款牌告利率，
+        取每年 12 個月底值的平均，1990–2025（稅前，未扣利息所得稅與二代健保）
    沒有列在這裡的標的就沒有逐年資料，回測時會被排除。
    --------------------------------------------------------------- */
 var SERIES = {
@@ -596,6 +604,13 @@ var SERIES = {
   gold: { from:2005, src:"chartrow GLD", r:[
     17.8,22.5,30.5,4.9,24.0,29.3,9.6,6.6,-28.3,-2.2,
     -10.7,8.0,12.8,-1.9,17.9,24.8,-4.1,-0.8,12.7,26.7,63.7] },
+  sgov: { from:2021, src:"Yahoo Finance 年度總報酬", r:[
+    0.04,1.58,5.12,5.27,4.24] },
+  twd: { from:1990, src:"中央銀行 五大銀行一年期存款牌告利率（月底值年平均）", r:[
+    9.50,9.12,7.82,7.73,7.29,7.04,6.48,6.01,6.30,5.06,
+    5.00,3.76,2.17,1.47,1.43,1.76,2.10,2.40,2.51,0.81,
+    0.99,1.30,1.36,1.36,1.36,1.33,1.10,1.04,1.04,1.04,
+    0.82,0.77,1.14,1.56,1.68,1.70] },
   f0050: { from:2004, src:"havocFuture 還原除權息", r:[
     5.62,10.03,21.12,10.31,-43.32,75.00,13.13,-15.81,11.92,11.68,
     16.66,-6.28,19.65,18.14,-4.94,33.52,31.14,21.92,-21.37,27.45,
@@ -817,6 +832,9 @@ function w1(x){
   var w = x / 10000;
   return (Math.abs(w) >= 1000 ? Math.round(w).toLocaleString("en-US") : w.toFixed(1));
 }
+function realOf(x, years, inflPct){
+  return x / Math.pow(1 + inflPct/100, years);
+}
 function wan(x){
   var w = x / 10000;
   if(Math.abs(w) >= 10000) return (w/10000).toFixed(2) + " 億";
@@ -1012,7 +1030,10 @@ function renderSummary(v, me, sp){
     $("sumFixedTitle").textContent = "沒有缺額";
     $("sumFixedTitle").style.color = "var(--ok)";
     var t = "年化 " + v.ret + "%、通膨 " + v.infl + "% 的設定下，資產撐得到 " + v.ageEnd
-      + " 歲，期末還有 " + wan(g.end) + "，期間最低 " + wan(g.low) + "。";
+      + " 歲，期末還有 " + wan(g.end) + "，期間最低 " + wan(g.low) + "。"
+      + "期末金額是 " + (v.ageEnd - v.ageNow) + " 年後的名目數字，"
+      + "以 " + v.infl + "% 通膨折回今天大約是 "
+      + wan(realOf(g.end, (v.ageEnd - v.ageNow), v.infl)) + "。";
     if(keep > 0) t += "全程都在想保留的 " + wan(keep) + " 之上，最低時還多出 " + wan(g.surplus) + "。";
     if(g.safeSpend !== null && !g.safeCapped && g.safeSpend > v.spend * 1.02)
       t += "以同樣條件，每年最多可以花到 " + wan(g.safeSpend) + "（提領率 "
@@ -1459,6 +1480,7 @@ function render(){
   } else {
     $("verdictTitle").textContent = "撐得到 " + v.ageEnd + " 歲";
     $("verdictText").textContent = "期末還有 " + wan(res.end)
+      + "（今日購買力約 " + wan(realOf(res.end, (v.ageEnd - v.ageNow), v.infl)) + "）"
       + "，期間最低 " + wan(res.low) + "。";
   }
 
@@ -1480,6 +1502,8 @@ function render(){
       + wan(res.end) + "；若每年都剛好是平均值則是 " + wan(flat.end) + "，相差 "
       + (diff >= 0 ? "多 " : "少 ") + wan(Math.abs(diff))
       + "。平均報酬一樣，順序不同，結果就不同。"
+      + "　這些都是 " + (v.ageEnd - v.ageNow) + " 年後的名目金額，折回今日購買力要除以 "
+      + Math.pow(1 + v.infl/100, v.ageEnd - v.ageNow).toFixed(2) + " 倍。"
       + (seq.wrapped ? "（歷史長度不足，末段由序列開頭循環接續。）" : "");
   }
 
@@ -1504,7 +1528,9 @@ function render(){
       + (r.rate < 0 ? "var(--alert)" : "var(--ink)") + '">' + r.rate.toFixed(1) + "%"
       + "</td><td>" + w1(r.open) + "</td><td>" + w1(r.gain)
       + "</td><td>" + w1(r.lp) + "</td><td>" + w1(r.li) + "</td><td>" + w1(r.np)
-      + "</td><td>" + w1(r.spend) + "</td><td>" + w1(r.close) + "</td>";
+      + "</td><td>" + w1(r.spend) + "</td><td>" + w1(r.close) + "</td>"
+      + '<td style="color:var(--muted)">'
+      + w1(realOf(r.close, r.age - v.ageNow, v.infl)) + "</td>";
     tb.appendChild(tr);
   });
 }
